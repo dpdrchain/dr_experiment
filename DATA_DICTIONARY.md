@@ -20,14 +20,18 @@ Pavlovia project's `data/` folder.
 Each completed session uploads one CSV, named:
 
 ```
-<participant_id>_<stimulus_set>_<session start, Japan time>.csv
-e.g. R_9rJJWk01c767jE8_v5c_180_2026-11-30T14-10-40.csv
+<group>_<participant_id>_<stimulus_set>_<session start, Japan time>.csv
+e.g. participant_R_9rJJWk01c767jE8_v5c_180_2026-11-30T14-10-40.csv
+     control_R_4EWNe48BIB50mVI_v5c_180_2026-11-30T15-02-11.csv
 ```
+
+The **group comes first**, so the two groups can be told apart without
+opening the files.
 
 The stamp is the **start of the session** (when the consent screen
 appeared) in **Japan time** (UTC+9, whatever time zone the participant's
 computer uses), written `YYYY-MM-DDTHH-MM-SS`. It is **the same stamp as in
-that session's contact file** (`contact_<participant_id>_<stamp>.csv`, §15),
+that session's contact file** (`<group>_contact_<participant_id>_<stamp>.csv`, §15),
 and in the file a participant downloads if the upload fails, so the files
 of one session can be matched by name. It equals `session_start_time`
 (which is in UTC) plus 9 hours.
@@ -35,22 +39,24 @@ of one session can be matched by name. It equals `session_start_time`
 Times **inside** the file are UTC (ISO 8601, ending in `Z`).
 
 **On Pavlovia** (`platform = pavlovia`) the file is stored in the Pavlovia
-project's `data/` folder, and Pavlovia adds the project name in front and
-its own date at the end:
+project's `data/` folder. Pavlovia builds the name itself (its plugin is
+left unchanged): it adds the project name in front, so the group comes
+**second**, and `_SESSION_` and its own date at the end:
 
 ```
-<project>_<participant_id>_v5c_180_<session start, Japan time>_SESSION_<date>.csv
+<project>_<group>_<participant_id>_v5c_180_<session start, Japan time>_SESSION_<YYYY-MM-DD_HHhMM.SS.mmm>.csv
 ```
 
 The middle part is the GitHub file name without `.csv`. Pavlovia's date at
-the end is the time of saving on the participant's computer clock — use the
-stamp in the middle (or `session_start_time`), not that. A pilot run
+the end is the time of saving on the participant's computer clock, in its
+own time zone — use the stamp in the middle (or `session_start_time`), not
+that. A pilot run
 (Pavlovia's **Pilot** button) is not stored on Pavlovia: the same file is
 downloaded to the computer that ran it.
 
 A full session produces **1254 rows** (1255 on Pavlovia, one or two more
-if ID entry needed a retry) and about **190 columns** (192 for participants,
-186 for controls). Each interruption that was resumed adds about six rows
+if ID entry needed a retry) and about **190 columns** (194 for participants,
+188 for controls, `link_id` and `link_phase` included). Each interruption that was resumed adds about six rows
 (the `resume` row, full screen, the window check, the download start, and
 inside a block its preload gate and reinstatement screen) and, once, the 12
 `resume` columns (§16). The columns differ slightly between the
@@ -72,8 +78,13 @@ early exits also leave no file, by design:
   the trial layout whole. It runs before the ID screen, so not even a
   name or email has been uploaded.
 
-A link without a valid `?group=` or `?slot=` never starts (an
-"incomplete link" screen), so it leaves no file either.
+A link without a valid code never starts, so it leaves no file either.
+There are two screens: **"Invalid link"** for a missing, unknown,
+malformed or edited code, and **"The link could not be checked"** when the
+public file `data/links/codes.json` could not be loaded or the browser
+lacks Web Crypto. A link that has already been completed in that browser
+shows only the completion message and leaves no file (except a test code;
+README, "Interruptions").
 
 If the upload itself fails (network problem, "Enable data collection"
 switched off on DataPipe, or Pavlovia not Running / out of credits), the
@@ -197,16 +208,18 @@ These repeat identically on every row, so read them from any row with
 | column | example | notes |
 |---|---|---|
 | `participant_id` | `R_9rJJWk01c767jE8` | links to the CDS-29 record. Case-sensitive. **`NOID_DRCHAIN26_…`** (prefix + 8 random characters) when the participant gave a name and email but no ID — see below |
-| `group` | `participant` / `control` | from `?group=` in the link. A link without a valid group does not start, so this is never empty in a saved file |
-| `slot` | `37` | from `?slot=` in the link: a whole number, 1 or more. A link without a valid slot does not start |
-| `interview_date` | `2026-11-03` | from `?idate=YYYY-MM-DD` in the link. **Empty** if the link had none, or an invalid date |
+| `link_id` | `main_participant_017` | the link, from its code (`?code=`): `<phase>_<group>_<slot, 3 digits or more>`. The same `link_id` is in the researcher's private code table, so a session joins to it (and to the `pid`, `idate` and `tester` typed there) without the code. **Never the code itself**: the code, its lookup key and its encrypted entry are never recorded. Empty for a `dev.html` session run with the old parameters |
+| `link_phase` | `test` / `pilot` / `main` | the code's phase. **`test` codes set `is_test = True`**. Empty for a `dev.html` session run with the old parameters |
+| `group` | `participant` / `control` | from the link's code (`dev.html`: also `?group=`). A link without a valid code does not start, so this is never empty in a saved file |
+| `slot` | `37` | from the link's code (`dev.html`: also `?slot=`): a whole number, 1 or more. Slots are numbered from 1 within each phase and group, so pilot slot 3 and main slot 3 use the same row; `link_phase` tells them apart |
+| `interview_date` | empty | **always empty for `index.html` sessions**: the link carries only a code, and the interview date stays in the researcher's private table, to be added afterwards (join on `link_id`). `dev.html` still fills it from `?idate=YYYY-MM-DD` |
 | `consent_given` | `True` | always `True` in a saved file (declining saves nothing): the one checkbox, the approved consent sentence ("I have understood the explanation above and, of my own free will, agree to participate in this study."), was ticked and "I agree, continue" pressed. The checkbox does not ask about age. Empty only for dev sessions run with the consent screen off |
-| `is_test` | `False` | `True` when a test ID was used: `Z_21121989` (yours) or `CHAIN_2026` (colleagues) |
+| `is_test` | `False` | `True` when a test ID was used (`Z_21121989`, yours, or `CHAIN_2026`, colleagues), **or** the session was started with a test code (`link_phase = test`) |
 | `is_dev` | `False` | `True` when the session started from `dev.html`, or was shortened |
 | `shortened` | `False` | `True` when a dev run cut each block to its first `shortened_to` trials (`CONFIG.limits`, dev.html only). Such a session is never valid data |
 | `shortened_to`, `shortened_practice_to` | empty | the limits of a shortened run; empty otherwise |
 | `positions_run` | `1,2` | which block positions ran. Always `1,2` outside dev.html |
-| `id_source` | `url` / `typed` / `no_id` | on the `participant_id` row only. `url` = came from the link unchanged; `no_id` = no ID given, name and email instead |
+| `id_source` | `typed` / `no_id` / `url` | on the `participant_id` row only. `typed` = typed on the ID screen (always, on `index.html`: links carry no ID); `no_id` = no ID given, name and email instead; `url` = from `?pid=` unchanged (`dev.html` only) |
 | `id_entered`, `id_valid` | | on the `participant_id` row only |
 | `contact_name_given`, `contact_email_given` | `True` / `False` | whether the participant filled in the optional field |
 | `contact_saved` | `True` / `False` / empty | whether DataPipe received the separate contact file. Empty if nothing was given, and always empty on Pavlovia (no separate file) |
@@ -214,8 +227,8 @@ These repeat identically on every row, so read them from any row with
 
 **Exclude any session where `is_test`, `is_dev` or `shortened` is `True`.**
 
-**Sessions without an ID.** When the link carried no valid ID, the
-participant had to give either an ID or both a name and an email address.
+**Sessions without an ID.** Links carry no ID, so the participant had to
+give either an ID or both a name and an email address.
 Those who gave only a name and email have `participant_id` =
 `NOID_DRCHAIN26_` + 8 random characters (unique per session) and
 `id_source = no_id`. They are real sessions (`is_test = False`). The same
@@ -620,8 +633,9 @@ For a complete, usable session:
 | check | expected |
 |---|---|
 | `is_test`, `is_dev`, `shortened` | all `False` |
+| `link_id`, `link_phase` | `link_phase` `pilot` or `main`; `link_id` = `<link_phase>_<group>_<slot, 3 digits>` |
 | `participant_id` | a real ID, or `NOID_…` with `contact_saved = True` |
-| `group` | `participant` or `control` |
+| `group` | `participant` or `control`, and the first part of the file name |
 | `slot`, `assignment_row` | a whole number; `assignment_row == (slot - 1) % 64 + 1` |
 | `b1_episode`, `b2_episode` | participants: derealization + ordinary; controls: ordinary + expectation (either order) |
 | `consent_given` | `True` |
@@ -689,8 +703,8 @@ answers; neither it nor the approved consent text says that they are
 uploaded straight away.)
 
 ```
-contact_<participant_id>_<session start, Japan time>.csv
-e.g. contact_R_9rJJWk01c767jE8_2026-11-30T14-10-40.csv
+<group>_contact_<participant_id>_<session start, Japan time>.csv
+e.g. participant_contact_R_9rJJWk01c767jE8_2026-11-30T14-10-40.csv
 ```
 
 The stamp is the **same** as in the session's response file name (§1),
@@ -700,7 +714,7 @@ although the contact file is uploaded earlier.
 |---|---|
 | `participant_id` | the link to the response file and to the CDS-29 record. For a participant who gave no ID, the generated `NOID_DRCHAIN26_…` ID — the same as in their response file, and the only link between the two |
 | `name`, `email` | as typed. Either may be empty |
-| `is_test`, `is_dev` | same meaning as in the response data |
+| `is_test`, `is_dev` | same meaning as in the response data (`is_test` is also `True` for a test code) |
 | `stimulus_set`, `language` | for convenience |
 | `session_start_time` | UTC — the same value as in the response file, for matching |
 | `saved_at` | UTC time of upload |

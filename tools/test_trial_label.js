@@ -12,6 +12,10 @@
  * has the earliest catch trial, for runs 3 and 4 the one whose block 1
  * list reaches both a catch trial and a consistency repeat soonest.
  *
+ * index.html links carry a code: the test makes temporary codes with
+ * tools/make_link_codes.py in the system's temporary folder (never in the
+ * repository) and serves that public file as data/links/codes.json.
+ *
  *   1. index.html, the config as shipped: a real session (consent, full
  *      screen, ID, brightness, gamma, episodes, block 1 practice and its
  *      main trials up to the first catch trial). No label on any
@@ -47,6 +51,8 @@
  *   npx --prefix ~/.cache/dpdr-test playwright install chromium
  *   NODE_PATH=~/.cache/dpdr-test/node_modules node tools/test_trial_label.js
  *
+ * Also needs python3 (for the temporary codes).
+ *
  * Takes about 5 minutes. Exit status 0 = all checks passed, 1 = a failure.
  * Nothing is uploaded: every request that is not to the local server is
  * blocked, and the dev runs save locally.
@@ -69,6 +75,25 @@ const SET = (() => {
 })();
 const PKG  = path.join(ROOT, 'data/sets', SET + '/');
 const TEST_ID = 'Z_21121989';
+
+// --- Temporary link codes, outside the repository ---------------------------
+// One main code per participant and control slot; the public file is served
+// as data/links/codes.json. Deleted at the end.
+function makeCodes(slots) {
+  const os = require('os');
+  const { execFileSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dpdr-label-codes-'));
+  const file = path.join(dir, 'codes.json');
+  execFileSync('python3', [path.join(ROOT, 'tools', 'make_link_codes.py'),
+    '--private-dir', path.join(dir, 'private'), '--public-out', file,
+    '--test', '0', '--pilot', '0', '--main', String(slots)], { stdio: 'pipe' });
+  const lines = fs.readFileSync(path.join(dir, 'private', 'link_codes_private.csv'), 'utf8')
+    .replace(/^\uFEFF/, '').trim().split(/\r?\n/);
+  const h = lines[0].split(',');
+  const codes = {};
+  lines.slice(1).forEach((l) => { const c = l.split(','); codes[c[h.indexOf('link_id')]] = c[h.indexOf('code')]; });
+  return { dir, file, code: (group, slot) => codes['main_' + group + '_' + String(slot).padStart(3, '0')] };
+}
 
 // --- A static server for the repository ------------------------------------
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
@@ -223,6 +248,8 @@ async function autopilot(page, opts = {}) {
         case 'fullscreen':
           await page.click('#jspsych-fullscreen-btn'); break;
         case 'participant_id':
+          // index.html links carry no ID: type the test ID.
+          if (await page.$eval('#pid-input', (el) => !el.value)) await page.fill('#pid-input', TEST_ID);
           await page.click('#jspsych-survey-html-form-next'); break;
         case 'setup':
           await page.click('#setup-continue-btn'); break;
@@ -304,6 +331,7 @@ function labelInData(rows, labels) {
   const browser = await chromium.launch({ args: ['--disable-background-timer-throttling',
                                                  '--disable-renderer-backgrounding'] });
   const config = fs.readFileSync(path.join(ROOT, 'config.js'), 'utf8');
+  const CODES = makeCodes(assignment.slots_per_group);
 
   async function open(url, configBody) {
     const ctx = await browser.newContext({ viewport: { width: 1400, height: 950 },
@@ -316,6 +344,9 @@ function labelInData(rows, labels) {
       if (!u.startsWith(BASE)) return route.abort();
       if (configBody && u.split('?')[0].endsWith('/config.js')) {
         return route.fulfill({ contentType: 'application/javascript', body: configBody });
+      }
+      if (u.split('?')[0].endsWith('/data/links/codes.json')) {
+        return route.fulfill({ contentType: 'application/json', body: fs.readFileSync(CODES.file, 'utf8') });
       }
       return route.continue();
     });
@@ -331,7 +362,7 @@ function labelInData(rows, labels) {
       const pick = pickSlot((list) => firstOf(list, 'catch'));
       console.log('   package ' + SET + ', participant slot ' + pick.slot + ' (first catch at trial ' +
                   pick.v + ' of block 1)');
-      const page = await open('index.html?group=participant&slot=' + pick.slot + '&pid=' + TEST_ID);
+      const page = await open('index.html?code=' + CODES.code('participant', pick.slot));
       let forced = false;
       const screens = await autopilot(page, {
         stopAfterMain: pick.v,
@@ -367,7 +398,7 @@ function labelInData(rows, labels) {
       const body = config.replace(/trial_label:\s*false/, 'trial_label: true')
                          .replace(/debug:\s*(true|false),/, 'debug: ' + debug + ',');
       if (body === config) throw new Error('could not switch the label on in config.js');
-      const page = await open('index.html?group=participant&slot=1&pid=' + TEST_ID, body);
+      const page = await open('index.html?code=' + CODES.code('participant', 1), body);
       await sleep(1500);
       const text = await page.evaluate(() => document.body.innerText);
       const consent = /Consent to take part/.test(text);
@@ -509,6 +540,7 @@ function labelInData(rows, labels) {
   } finally {
     await browser.close();
     server.close();
+    fs.rmSync(CODES.dir, { recursive: true, force: true });
   }
 
   const failed = results.filter((r) => !r).length;

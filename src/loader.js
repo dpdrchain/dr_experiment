@@ -22,20 +22,33 @@
  * anywhere) reorders, resamples or rewrites it: each list is presented in
  * file order, with the sides it gives.
  *
- * The active package comes from CONFIG.data.set, or from ?set=<name> in
- * the URL, which overrides it (only names in available_sets).
+ * Also reads the public link-code file, CONFIG.data.link_codes_file
+ * (data/links/codes.json), and opens the link's code (link-code.js).
  *
- * LINK PARAMETERS read here, so every module sees the same values:
+ * The active package comes from CONFIG.data.set; on dev.html ?set=<name>
+ * in the URL overrides it (only names in available_sets).
+ *
+ * LINK PARAMETERS read here, so every module sees the same values.
+ *
+ * index.html (participants): ONLY these two.
+ *   ?code=<code>          REQUIRED. Opened against the public file: gives
+ *                         link_id, link phase (test / pilot / main), group
+ *                         and slot. Missing, unknown, malformed or tampered
+ *                         -> linkStatus() 'invalid', main.js shows the
+ *                         "invalid link" screen. The file not loaded, or no
+ *                         crypto.subtle -> 'unchecked', the "link could not
+ *                         be checked" screen.
  *   ?lang=en|ja           language (overrides CONFIG.language)
- *   ?group=participant|control
- *                         REQUIRED. Missing or invalid -> group() is null and
- *                         main.js shows the "incomplete link" screen.
- *   ?slot=<n>             REQUIRED. A whole number, 1 or more. Missing or
- *                         invalid -> slot() is null, "incomplete link".
- *                         Slot n uses row ((n - 1) mod 64) + 1 of the group's
- *                         table in assignment.json.
- *   ?idate=YYYY-MM-DD     optional interview date; invalid -> ''.
- *   ?pid=...              read by participant-id.js.
+ *   pid, group, slot, idate and set are IGNORED on index.html (and never
+ *   recorded): the group and slot come from the code only, and
+ *   interview_date is empty (it is added afterwards from the private table).
+ *
+ * dev.html: the old parameters, exactly as before, and ?code= as well
+ * (when both are given, the code wins):
+ *   ?group=participant|control, ?slot=<n> (a whole number, 1 or more;
+ *   slot n uses row ((n - 1) mod 64) + 1 of the group's table),
+ *   ?idate=YYYY-MM-DD (optional; invalid -> ''), ?pid=... (read by
+ *   participant-id.js), ?set=, ?lang=.
  *
  * FILE:// DOES NOT WORK
  * ---------------------
@@ -61,12 +74,35 @@ var Loader = (function () {
     return new URLSearchParams(window.location.search).get(name);
   }
 
+  // The parameters index.html ignores: on index.html they read as absent.
+  var DEV_ONLY = ['pid', 'group', 'slot', 'idate', 'set'];
+  function _linkParam(name) {
+    if (!window.DEV_MODE && DEV_ONLY.indexOf(name) !== -1) return null;
+    return _param(name);
+  }
+
+  // -----------------------------------------------------------------------
+  // The link code (link-code.js). Filled by loadAll():
+  //   status  'ok' | 'invalid' | 'unchecked' | 'none' (dev.html without
+  //           ?code=)
+  //   reason  why not 'ok' (console and debug box only)
+  //   link    { link_id, phase, group, slot } when 'ok'
+  // The code itself is never kept.
+  // -----------------------------------------------------------------------
+  var _link = { status: 'none', reason: '', link: null };
+  var _codesFile = { path: '', loaded: false, error: '', problems: [], count: 0 };
+
+  function _codeGiven() {
+    var c = _param('code');
+    return c !== null && c !== undefined;
+  }
+
   // -----------------------------------------------------------------------
   // Active package. A name not in CONFIG.data.available_sets is rejected
   // HERE, before any fetch, with a message naming the valid ones.
   // -----------------------------------------------------------------------
   function _activeSet() {
-    var override = _param('set');
+    var override = _linkParam('set');
     var name = override || CONFIG.data.set;
     var known = CONFIG.data.available_sets || [];
 
@@ -102,9 +138,21 @@ var Loader = (function () {
   // is null, and main.js refuses to start. Deliberately no default.
   // -----------------------------------------------------------------------
   function group() {
-    var g = _param('group');
+    if (_link.status === 'ok') {
+      var lg = _link.link.group;
+      return ((CONFIG.groups || []).indexOf(lg) !== -1) ? lg : null;
+    }
+    if (!window.DEV_MODE || _codeGiven()) return null;     // index.html: the code only
+    var g = _linkParam('group');
     return (g && (CONFIG.groups || []).indexOf(g) !== -1) ? g : null;
   }
+
+  // From the link code: link_id and its phase ('test', 'pilot', 'main').
+  // null on dev.html without ?code=.
+  function linkId()    { return _link.status === 'ok' ? _link.link.link_id : null; }
+  function linkPhase() { return _link.status === 'ok' ? _link.link.phase : null; }
+  function linkStatus() { return { status: _link.status, reason: _link.reason }; }
+  function codesFile() { return _codesFile; }
 
   // Pick the active group's version of a group-dependent string. Plain
   // strings pass through.
@@ -134,7 +182,9 @@ var Loader = (function () {
   // Leading zeros are allowed ('007' is slot 7).
   // -----------------------------------------------------------------------
   function slot() {
-    var raw = _param('slot');
+    if (_link.status === 'ok') return _link.link.slot;
+    if (!window.DEV_MODE || _codeGiven()) return null;     // index.html: the code only
+    var raw = _linkParam('slot');
     if (raw === null) return null;
     if (!/^[0-9]+$/.test(raw)) return null;
     var n = parseInt(raw, 10);
@@ -167,7 +217,7 @@ var Loader = (function () {
   // '' when absent or invalid.
   // -----------------------------------------------------------------------
   function interviewDate() {
-    var raw = _param('idate');
+    var raw = _linkParam('idate');              // always '' on index.html
     if (!raw) return '';
     var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw.trim());
     if (m) {
@@ -227,7 +277,8 @@ var Loader = (function () {
       return Promise.reject(e);
     }
 
-    return _fetchJSON(dir + 'design.json').then(function (design) {
+    return Promise.all([_fetchJSON(dir + 'design.json'), _loadLink()]).then(function (first) {
+      var design = first[0];
       _data.design = design;
       var listIds = Object.keys(design.lists || {});
       var practiceFiles = [];
@@ -257,7 +308,9 @@ var Loader = (function () {
           console.log('[Loader] package "' + _activeSet() + '" (' +
                       (design.version || '?') + '): ' + listIds.length +
                       ' lists, ' + practiceFiles.length + ' practice files, ' +
-                      (_data.preload || []).length + ' images; group = ' +
+                      (_data.preload || []).length + ' images; link ' + _link.status +
+                      (_link.status === 'ok' ? ' (' + _link.link.link_id + ')' : '') +
+                      (_link.reason ? ' [' + _link.reason + ']' : '') + '; group = ' +
                       (group() || 'MISSING') + ', slot = ' + (slot() || 'MISSING') +
                       (a ? ' -> row ' + a.slot + ' (' + a.blocks.map(function (b) {
                         return b.position + ': ' + b.episode + '/' + b.list;
@@ -265,6 +318,43 @@ var Loader = (function () {
                       ', language = ' + _activeLanguage());
         }
         return _data;
+      });
+    });
+  }
+
+  // -----------------------------------------------------------------------
+  // The public link-code file, and the link's code. Never rejects: a file
+  // that cannot be loaded leaves the link 'unchecked' (and validate.js
+  // warns, or refuses a production session).
+  // -----------------------------------------------------------------------
+  function _loadLink() {
+    var path = (CONFIG.data && CONFIG.data.link_codes_file) || 'data/links/codes.json';
+    _codesFile = { path: path, loaded: false, error: '', problems: [], count: 0 };
+    var given = _codeGiven();
+    var fileP = fetch(path, { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (pub) {
+      _codesFile.loaded = true;
+      _codesFile.problems = LinkCode.checkFile(pub);
+      _codesFile.count = (pub && pub.codes && typeof pub.codes === 'object')
+                         ? Object.keys(pub.codes).length : 0;
+      return pub;
+    }).catch(function (e) {
+      _codesFile.error = (e && e.message) ? e.message : String(e);
+      return null;
+    });
+    return fileP.then(function (pub) {
+      if (!given && window.DEV_MODE) {
+        _link = { status: 'none', reason: '', link: null };
+        return;
+      }
+      return LinkCode.open(_param('code'), pub).then(function (r) {
+        _link = { status: r.status, reason: r.reason || '', link: r.link || null };
+        if (r.status !== 'ok') {
+          console.warn('[Loader] link code ' + r.status + ': ' + r.reason +
+                       (pub ? '' : ' (' + path + ': ' + _codesFile.error + ')'));
+        }
       });
     });
   }
@@ -447,5 +537,9 @@ var Loader = (function () {
     breaksAfter:         breaksAfter,
     limits:              limits,
     interviewDate:       interviewDate,
+    linkId:              linkId,
+    linkPhase:           linkPhase,
+    linkStatus:          linkStatus,
+    codesFile:           codesFile,
   };
 })();

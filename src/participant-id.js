@@ -3,7 +3,10 @@
  *
  * ONE SCREEN asks for everything at the start:
  *
- *   Participant ID   REQUIRED. Pre-filled from ?pid= in the invitation link.
+ *   Participant ID   Typed by the participant. index.html links carry
+ *                    only a code (?code=), never the ID, so every
+ *                    participant sees the variant below for a link
+ *                    without an ID. dev.html still pre-fills it from ?pid=.
  *   Name             optional
  *   Email            optional
  *
@@ -14,7 +17,14 @@
  * checked as it is typed: an invalid ID blocks the Continue button with a
  * message in the participant's language. Test IDs
  * (CONFIG.participant.superuser_ids) are accepted too, and flag every row
- * is_test = true.
+ * is_test = true, as does a session started with a test code (link_phase
+ * 'test').
+ *
+ * COMPLETION CHECK ON THE TYPED ID (index.html, a second safeguard after
+ * the check of the link itself in main.js): a typed ID that has completed
+ * the study in this browser sees only the completion message, nothing
+ * uploaded. Except: the superuser IDs, and any session whose link code is
+ * a test code.
  *
  * WITHOUT A VALID ?pid= IN THE LINK (and with allow_manual_id on and both
  * name and email collected) the participant must give EITHER a valid ID
@@ -75,6 +85,10 @@ var ParticipantID = (function () {
     if (Progress.contactSavedBefore()) { _contactSaved = true; _contactStatus = _contactStatus || 'saved'; }
   }
   function isSuperuser()  { return _superuser; }
+  // is_test: a superuser ID, or a session started with a test code.
+  function isTest() {
+    return _superuser || (typeof Loader !== 'undefined' && Loader.linkPhase() === 'test');
+  }
   function contactSaved() { return _contactSaved; }
   function contactReply() { return _contactReply; }
   function contactStatus() { return _contactStatus; }
@@ -93,11 +107,11 @@ var ParticipantID = (function () {
   }
 
   // -----------------------------------------------------------------------
-  // Read ?pid= from the URL. Entirely client-side: the query string is never
-  // processed by the server, so this works identically on GitHub Pages,
-  // Pavlovia, or a file opened from disk.
+  // Read ?pid= from the URL: dev.html only. index.html ignores ?pid= (its
+  // links carry only a code), so there it is always null.
   // -----------------------------------------------------------------------
   function fromURL() {
+    if (!window.DEV_MODE) return null;
     var params = new URLSearchParams(window.location.search);
     var raw = params.get('pid');
     return raw ? normalise(raw) : null;
@@ -234,12 +248,14 @@ var ParticipantID = (function () {
     var stamp = new Date().toISOString();
     var header = ['participant_id', 'name', 'email', 'is_test', 'is_dev',
                   'stimulus_set', 'language', 'session_start_time', 'saved_at'];
-    var row = [_id, name, email, _superuser, !!window.DEV_MODE,
+    var row = [_id, name, email, isTest(), !!window.DEV_MODE,
                Loader.stimulusSet(), Loader.language(),
                Record.sessionStartISO(), stamp];
     var csv = header.join(',') + '\n' + row.map(_csvField).join(',') + '\n';
 
-    var filename = 'contact_' + _id + '_' + Record.sessionStamp() + '.csv';
+    // <group>_contact_<participant_id>_<session start, Japan time>.csv
+    var filename = (Loader.group() || 'nogroup') + '_contact_' + _id + '_' +
+                   Record.sessionStamp() + '.csv';
 
     jsPsychPipe.saveData(CONFIG.contact_datapipe.experiment_id, filename, csv)
       .then(function (result) {
@@ -426,8 +442,10 @@ var ParticipantID = (function () {
 
         // index.html: an ID that has already completed the study (this
         // browser's completion record). Nothing is uploaded; main.js then
-        // shows only the completion message.
-        if (_id && !window.DEV_MODE && Progress.isCompleted(_id)) {
+        // shows only the completion message. Not for the superuser IDs,
+        // nor in a session started with a test code.
+        if (_id && !window.DEV_MODE && !_superuser && Loader.linkPhase() !== 'test' &&
+            Progress.isIdCompleted(_id)) {
           _alreadyCompleted = true;
           return;
         }
@@ -472,6 +490,7 @@ var ParticipantID = (function () {
     state:         state,
     restore:       restore,
     isSuperuser:   isSuperuser,
+    isTest:        isTest,
     isValid:       isValid,
     normalise:     normalise,
     fromURL:       fromURL,

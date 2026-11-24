@@ -122,18 +122,24 @@ ignore `trial_type` — it only tells you which plugin drew the screen.
 
 ## 4. Run a test session
 
-Open, replacing the values with your own:
+`index.html` needs the public link-code file, `data/links/codes.json`
+(§6, "Link codes"). Once it is there, open a **test code** link from your
+`links_private_test.csv`, and type the superuser ID `Z_21121989` on the ID
+screen:
 
 ```
-https://<username>.github.io/<repo-name>/?pid=Z_21121989&group=participant&slot=1
+https://<username>.github.io/<repo-name>/?code=<a test code>
 ```
 
-`Z_21121989` is the superuser ID. Every row it produces carries
-`is_test = true`, so test sessions can always be filtered out. The `group`
-and `slot` parameters are **required**: without either the study shows
-"This link is incomplete" and does not start. Repeat with
-`group=control`, and with a few slots (each slot gives a different episode
+A test code and the superuser ID each set `is_test = true` on every row,
+so test sessions can always be filtered out. A test code is never blocked
+by the completion check, so it can be run again. Repeat with a test code of
+the other group, and with a few slots (each slot gives a different episode
 order, set mapping and list order — `assignment.json`).
+
+Without the file, or before it is committed, test on `dev.html`, which
+keeps the old parameters:
+`dev.html?group=participant&slot=1&pid=Z_21121989`.
 
 The session runs in this order (both groups):
 
@@ -150,7 +156,8 @@ Then confirm the file arrived on Zenodo (via the DataPipe experiment). The
 DataPipe dashboard session counter should also increment.
 
 For quick checks of one block, use `dev.html` instead (choose a group and
-a slot first): every preset except "Upload test" saves locally. Its
+a slot first, or give a `?code=`): every preset except "Upload test" saves
+locally. Its
 "Shortened session" preset runs every step with each block cut to its
 first 12 trials.
 
@@ -166,7 +173,11 @@ first 12 trials.
 ### Testing without uploading
 
 Serve the folder over HTTP on your computer (`python3 -m http.server 8000`,
-then open `http://localhost:8000/?pid=Z_21121989&group=participant&slot=1`). With
+then open `http://localhost:8000/?code=<a test code>`, or
+`http://localhost:8000/dev.html?group=participant&slot=1&pid=Z_21121989`).
+Use `localhost`, not your computer's network address: the code check needs
+the browser's Web Crypto, which works only on https pages and on
+`localhost`. With
 `platform: 'auto'` this is `local`: the CSV downloads to your Downloads
 folder and nothing is sent anywhere — except the separate contact file, if
 you type a name or email (see `DATA_DICTIONARY.md` §15). Useful for checking
@@ -227,54 +238,88 @@ deploys normally. That is a difficult failure to diagnose.
 
 ## 6. Participant links
 
-Each participant gets their own link, carrying their ID, their group, a
-**slot** and, for participants, the date of their interview:
+Each participant gets their own link, carrying **one code** and, optionally,
+the language. Nothing else (the code below is an example, not a real one):
 
 ```
-https://<username>.github.io/<repo-name>/?pid=R_9rJJWk01c767jE8&group=participant&slot=1&idate=2026-11-03
-https://<username>.github.io/<repo-name>/?pid=R_4EWNe48BIB50mVI&group=control&slot=1
+https://dpdrchain.github.io/dr_experiment/?code=K7Q2MXH9TRWB
+https://dpdrchain.github.io/dr_experiment/?code=K7Q2MXH9TRWB&lang=ja
 ```
 
 | parameter | required | value |
 |---|---|---|
-| `pid` | recommended. Without it (and with `allow_manual_id` on) the participant must type a valid ID **or** give a name and email address | the participant ID, case-sensitive |
-| `group` | **yes** | `participant` or `control`, exactly. Without it the study does not start |
-| `slot` | **yes** | a whole number, 1 or more. Slot n uses row ((n − 1) mod 64) + 1 of the group's table in `data/sets/v5c_180/assignment.json`. **Hand slots out in sequence per group, starting at 1, and never reuse one.** Without a valid slot the study does not start |
-| `idate` | no | the interview date, `YYYY-MM-DD`. Added by the researcher who schedules the interviews; never asked on screen. An invalid date is recorded empty |
+| `code` | **yes** | a code made by `tools/make_link_codes.py` (below). Any case; spaces around it are ignored |
 | `lang` | no | `ja` for Japanese; English otherwise |
 
-Join parameters with `&`. The query string never reaches the server. It
-sits in the address bar and is read by JavaScript, which is why this works
-on static hosting with no backend. `README.md` has a short Python function
-that builds the links from a table.
+**What the code does.** The page looks the code up in the public file
+`data/links/codes.json` and decrypts its entry. That gives the `link_id`
+(for example `main_participant_017`), the phase (`test`, `pilot` or `main`),
+the group and the slot. The group and slot are used as before: slot n uses
+row ((n − 1) mod 64) + 1 of the group's table in `assignment.json`.
+Participants cannot change their condition by editing the link, and the
+link does not show their group.
 
-Put the ID in the email body as well as the link:
+**What is ignored.** `index.html` ignores `pid`, `group`, `slot`, `idate`
+and `set` in the address, and none of them is recorded. The interview date
+stays in your private table and is added to the data afterwards, joined on
+`link_id`; `interview_date` is empty in the files.
 
-> Here is your link: https://.../?pid=R_9rJJWk01c767jE8&group=participant&slot=1&idate=2026-11-03
+**When the link does not work:**
+
+- **"Invalid link".** The code is missing, unknown, malformed or edited.
+  The screen says: "This link is not valid. Please open the link from your
+  invitation email exactly as it was sent. If it still does not work,
+  please contact the researcher."
+- **"The link could not be checked".** `data/links/codes.json` could not be
+  loaded, or the browser lacks Web Crypto. This is not the participant's
+  fault, so it has its own message.
+
+On either screen the session does not start, and nothing is recorded or
+uploaded.
+
+**What to put in the invitation email: the link AND the participant ID.**
+The ID is no longer in the link, so every participant types it on the ID
+screen (or gives their name and email address instead; the screen says
+that all three is best). For example:
+
+> Here is your link: https://dpdrchain.github.io/dr_experiment/?code=K7Q2MXH9TRWB&lang=ja
+>
+> Your participant ID (you will be asked for it): R_9rJJWk01c767jE8
 >
 > If the link does not work, please reply to this email.
 
-A link without `group` or `slot` does not start, so any fallback link must
-carry both (and its own, unused slot). A link with the group and slot but no
-ID (`https://.../?group=participant&slot=5`) does start: the participant then types their ID, or — if they do not have
-it — gives their name and email address instead (a unique `NOID_DRCHAIN26_…`
-ID is generated, and the contact file is what links the session to them).
-Giving all three is best, and the screen says so.
-
 The IDs are **case-sensitive**. `R_4EWNe48BIB50mVI` and `R_4ewne48bib50mvi`
-are different identifiers, and the experiment will reject the wrong case.
-Before sending, open one participant link and one control link yourself and
-check the episode screens show the right wording (controls must never see
-the word "interview").
+are different identifiers, and the experiment rejects a typed ID in the
+wrong format. The codes are not case-sensitive.
+
+**Handing out codes.** Use the codes of each phase and group in slot order,
+starting at 1, and never give one code to two people. Record who got which
+in the private table (`pid`, `idate`, `tester`, `sent_date`, `notes`).
+`tools/make_links.py` builds the links from it (commands below). Before
+sending, open one participant link and one control link yourself (test
+codes) and check the episode screens show the right wording (controls must
+never see the word "interview").
+
+**Completion check (same browser only).** A link that has been completed
+shows only "You have already completed this study…" when it is opened
+again, **except a test code**, which testers can run as often as they like.
+As a second safeguard, a typed participant ID that has completed in that
+browser is stopped the same way, straight after the ID screen, even on
+another link, **except the superuser IDs** and **sessions started with a
+test code**. A reload resumes the same link's session, test codes
+included. (`README.md`, "Interruptions".)
+
+**`dev.html`** keeps the old parameters for quick tests:
+`dev.html?group=participant&slot=1&pid=Z_21121989&idate=2026-11-03`. It
+also accepts `?code=`, opened the same way, so a code can be checked there;
+the code wins if both are given. Every `dev.html` session is
+`is_dev = true`.
 
 ### Link codes
 
-**The experiment does not use the codes yet.** A later change will make it
-read them. Until then, links stay as described above.
-
-Each link will carry one random code (`?code=…`) in place of `pid`, `group`,
-`slot` and `idate`. Participants then cannot change their condition by
-editing the link, and the link does not show their group.
+Each link carries one random code (`?code=…`) in place of `pid`, `group`,
+`slot` and `idate`. `index.html` opens it against the public file
+`data/links/codes.json` (`src/link-code.js`, as described below).
 
 `tools/make_link_codes.py` (Python 3.8+, standard library only) makes one
 code per link. A link is a phase (`test`, `pilot`, `main`), a group and a
@@ -287,7 +332,7 @@ Codes are 12 characters from `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (no 0, O, 1,
 I or L), with no separators. They are drawn with Python's `secrets` module
 and are all different. No code consists only of digits, or of digits with a
 single E, because Excel and Numbers would turn such a code into a number.
-Codes will be accepted case-insensitively.
+Codes are accepted case-insensitively.
 
 #### What stays private and what is committed
 
@@ -296,11 +341,13 @@ Codes will be accepted case-insensitively.
 | `link_codes_private.csv` | `--private-dir`, **never committed** | `link_id, phase, group, slot, code, created_utc, pid, idate, tester, sent_date, notes` |
 | `link_codes_manifest.txt` | `--private-dir`, never committed | counts per phase and group; the sha256 checksum of the public file |
 | `backups/` | `--private-dir` | the three files as they were before each `--extend` |
-| the public JSON | `--public-out`; committed **later**, when the experiment reads it | one encrypted entry per code. No codes, no participant IDs, no names, nothing about people |
+| the public JSON | `--public-out`; a copy is committed as **`data/links/codes.json`**, which `index.html` reads | one encrypted entry per code. No codes, no participant IDs, no names, nothing about people |
+| `links_private*.csv` | `--private-dir`, **never committed** (`tools/make_links.py`) | the links: `link_id, phase, group, slot, pid, tester, link` |
 
-- **Where the private folder may be:** the script refuses to put it inside
-  this repository. `.gitignore` also lists both private file names, as a
-  second safeguard. The folder is created readable only by you (700), and
+- **Where the private folder may be:** both scripts refuse to put it inside
+  this repository. `.gitignore` also lists the private file names
+  (`link_codes_private.csv`, `link_codes_manifest.txt`,
+  `links_private*.csv`), as a second safeguard. The folder is created readable only by you (700), and
   the table and manifest are 600.
 - **`link_id`:** readable, with no code in it, for example
   `main_participant_017` or `test_control_003`.
@@ -379,8 +426,92 @@ problem. It checks that:
   table and compared byte for byte);
 - its sha256 matches the manifest.
 
-Once the public file is in the repository, give that copy's path as
-`--public-out` to check it.
+#### The public file in the repository
+
+`index.html` reads the public file from **`data/links/codes.json`**. After
+making the codes, and again after every `--extend`, copy it there, check
+the copy, and commit it. Run these from your clone:
+
+```bash
+mkdir -p data/links
+cp ~/dpdr_private/link_codes/codes_public.json data/links/codes.json
+
+python3 tools/make_link_codes.py \
+    --private-dir ~/dpdr_private/link_codes \
+    --public-out  data/links/codes.json \
+    --verify
+
+git add data/links/codes.json
+git commit -m "Link codes: public file"
+```
+
+`--verify` with `--public-out data/links/codes.json` checks the copy in the
+repository against your private table and the manifest. It writes nothing.
+`node tools/check_package.js` also reports whether the file is there and
+well formed. Without it, `index.html` cannot start a session:
+`validate.js` warns in a debug session, and refuses a production session
+(debug off), where participants see "The link could not be checked".
+
+#### Building the links
+
+`tools/make_links.py` (Python 3.8+, standard library only) reads the
+private table and writes the links to a **private** file in the same
+folder. There is one file per combination of filters and language:
+
+- `links_private_pilot_ja.csv` for `--phase pilot --lang ja`;
+- `links_private.csv` for no filters.
+
+Its columns are `link_id, phase, group, slot, pid, tester, link`; `pid` and
+`tester` are copied from what you typed in the table.
+
+- **Options:** `--phase` and `--group` filter, and `--lang` adds `&lang=`.
+  `--public-file` first checks that every selected code opens its entry in
+  that public file.
+- **Safety:** the same as `make_link_codes.py`. It refuses a folder inside
+  the repository, and it reads tables saved by Excel or Numbers. Links are
+  printed only with `--show`.
+
+```bash
+# Test links (lab members), Japanese and English
+python3 tools/make_links.py --private-dir ~/dpdr_private/link_codes \
+    --base-url https://dpdrchain.github.io/dr_experiment/ \
+    --phase test --lang ja --public-file data/links/codes.json
+python3 tools/make_links.py --private-dir ~/dpdr_private/link_codes \
+    --base-url https://dpdrchain.github.io/dr_experiment/ \
+    --phase test --lang en --public-file data/links/codes.json
+
+# Pilot links, Japanese and English
+python3 tools/make_links.py --private-dir ~/dpdr_private/link_codes \
+    --base-url https://dpdrchain.github.io/dr_experiment/ \
+    --phase pilot --lang ja --public-file data/links/codes.json
+python3 tools/make_links.py --private-dir ~/dpdr_private/link_codes \
+    --base-url https://dpdrchain.github.io/dr_experiment/ \
+    --phase pilot --lang en --public-file data/links/codes.json
+
+# Main links, Japanese and English
+python3 tools/make_links.py --private-dir ~/dpdr_private/link_codes \
+    --base-url https://dpdrchain.github.io/dr_experiment/ \
+    --phase main --lang ja --public-file data/links/codes.json
+python3 tools/make_links.py --private-dir ~/dpdr_private/link_codes \
+    --base-url https://dpdrchain.github.io/dr_experiment/ \
+    --phase main --lang en --public-file data/links/codes.json
+```
+
+These write `links_private_test_ja.csv`, `links_private_test_en.csv`, and
+so on, in `~/dpdr_private/link_codes`. Add `--group participant` or
+`--group control` for one group only (for example
+`links_private_main_participant_ja.csv`). For Pavlovia, use the Pavlovia
+address as `--base-url` (§7).
+
+**Self-tests:**
+
+- `python3 tools/test_make_links.py`: the link-building script.
+- `node tools/test_link_code.js`: the page's code lookup
+  (`src/link-code.js`) against the test vectors.
+- `NODE_PATH=~/.cache/dpdr-test/node_modules node tools/test_link_codes_e2e.js`:
+  the code links in a browser, on `localhost`, with temporary codes made
+  outside the repository. Playwright is installed as described in
+  `tools/test_trial_label.js`.
 
 #### Editing the table in Excel or Numbers
 
@@ -456,8 +587,9 @@ The tag covers `L`, so an entry moved to another code's key fails too.
 `tools/make_link_codes.py` also rejects a decrypted entry whose `link_id`
 does not match its phase, group and slot.
 
-A browser implementation, checked against the test vectors in Node's Web
-Crypto and in Chromium:
+The experiment's implementation is `src/link-code.js`, checked against the
+test vectors by `node tools/test_link_code.js`. A minimal version of the
+same steps:
 
 ```js
 const subtle = crypto.subtle, enc = new TextEncoder();
@@ -507,6 +639,13 @@ normalisation.
 To regenerate the vectors, run
 `python3 tools/make_link_codes.py --make-test-vectors tools/link_codes_test_vectors.json`.
 The self-test checks that the file matches the script.
+
+**What the code cannot hide.** The page has to know the group to run the
+session. Anyone who opens the browser's developer tools can therefore see
+the group, in the page's memory and in the progress it stores (the
+`link_id` contains it). The code stops participants from changing
+condition by editing the link, and keeps the link from showing their group.
+It does not hide the group from someone who looks for it on purpose.
 
 **A note on strength.** A 12-character code has about 59 bits of
 randomness. Someone with the public file could, in principle, test
@@ -622,12 +761,22 @@ repository** (`data/` folder). The GitHub repository is public. So:
   session, named
 
   ```
-  <project>_<participant_id>_v5c_180_<Japan-time stamp>_SESSION_<date>.csv
+  <project>_<group>_<participant_id>_v5c_180_<Japan-time stamp>_SESSION_<YYYY-MM-DD_HHhMM.SS.mmm>.csv
   ```
 
-  The middle part is the same as the GitHub file name
-  (`<participant_id>_v5c_180_<Japan-time stamp>`). Download them from the
-  experiment page (**Download results**) or with `git pull` in folder B.
+  Pavlovia builds this name itself, and its plugin is left unchanged.
+
+  - **What Pavlovia adds:** its project name at the start (so the group
+    comes second, not first), and `_SESSION_` and the date and time at the
+    end, in the participant's **local** time rather than Japan time, to the
+    millisecond.
+  - **What is ours:** the middle part, which is the same as the GitHub file
+    name without `.csv`: `<group>_<participant_id>_v5c_180_<Japan-time stamp>`.
+  - **No contact file:** there is none on Pavlovia, because name and email
+    are kept in the response file.
+
+  Download the files from the experiment page (**Download results**) or
+  with `git pull` in folder B.
 
 The Pavlovia session is opened only after the consent screen and the window
 check, so a participant who declines or whose window is too small never
@@ -636,11 +785,15 @@ opens one (and never sees the browser's "leave this page?" warning).
 ### Links
 
 ```
-https://run.pavlovia.org/<user>/<project>/?pid=R_xxxxxxxxxxxxxxx&group=participant&slot=1&idate=2026-11-03
-https://run.pavlovia.org/<user>/<project>/?pid=R_xxxxxxxxxxxxxxx&group=control&slot=1
+https://run.pavlovia.org/<user>/<project>/?code=<code>
+https://run.pavlovia.org/<user>/<project>/?code=<code>&lang=ja
 ```
 
-The same parameters as on GitHub (§6). `dev.html` works there too:
+The same code links as on GitHub (§6), and the same public file,
+`data/links/codes.json`, which `tools/sync_to_pavlovia.sh` copies with the
+rest. Build them with `tools/make_links.py --base-url
+https://run.pavlovia.org/<user>/<project>/`. Pavlovia's own parameters (such
+as `__pilotToken`) are left alone. `dev.html` works there too:
 `https://run.pavlovia.org/<user>/<project>/dev.html?group=participant&slot=1`; its
 "Upload test" saves to Pavlovia.
 
@@ -673,7 +826,11 @@ invitation while any item fails. In addition, for deployment:
       the (new, v5c) DataPipe experiment
 - [ ] All images load (no grey boxes, no console 404s; `failed_images` is
       `[]` on both `preload` rows)
-- [ ] Participant links generated with the correct IDs, groups, slots (in
-      sequence per group, none reused) and interview dates
+- [ ] `data/links/codes.json` committed, and `make_link_codes.py --verify`
+      with `--public-out data/links/codes.json` passes; participant links
+      built with `tools/make_links.py --public-file data/links/codes.json`,
+      codes handed out in slot order per phase and group (none reused), and
+      the private table records who got which code (`pid`, `idate`,
+      `sent_date`)
 - [ ] A full session run start to finish on a small laptop screen (and the
       window check tried on a window that is too small: it must stop)

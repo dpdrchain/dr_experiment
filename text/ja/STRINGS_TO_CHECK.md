@@ -16,13 +16,59 @@ General rules that apply to every string (see the header of `text/en/instruction
 
 **Not listed here:** the ten rated words, which are the registered Japanese (霞がかった, 色あせた, ベールがかかったような, 生気のない, 現実味のない, 夢のような, 遠く感じる, 絵のような, 重苦しい, 不穏な). The four CDS items are listed (they are verbatim from the published Japanese CDS, so check them against that version rather than for style).
 
-The strings of the latest revision come first: the approved consent text (listed for reference, not to check) and the reminder on the episode screens. Then those of the resume and CDS revision (reload warning, resuming, completion message, the CDS items); then those of the text revision (formal register, no dashes, the set-up and brightness screens, optional episode questions, the practice texts by episode); then the v5b strings, then the v4 strings that are still in use, each listed once, under the revision that last changed it. The v4 anchoring, grid and normal-appearance grid strings were removed with those screens.
+The strings of the latest revision come first: the two link screens (code links). Then those of the consent revision: the approved consent text (listed for reference, not to check) and the reminder on the episode screens. Then those of the resume and CDS revision (reload warning, resuming, completion message, the CDS items); then those of the text revision (formal register, no dashes, the set-up and brightness screens, optional episode questions, the practice texts by episode); then the v5b strings, then the v4 strings that are still in use, each listed once, under the revision that last changed it. The v4 anchoring, grid and normal-appearance grid strings were removed with those screens.
 
-## Latest revision: Approved consent text
+## Latest revision: Link screens (code links)
+
+Links now carry one code instead of the participant ID, group and slot. These two screens replace "Incomplete link" (`link.missing_*`, removed). Both stop the session before anything is shown or recorded. The second one must not suggest that the participant's link is wrong.
+
+- [ ] **1. instructions.js → `link.invalid_title`**  
+  _A missing, unknown, malformed or edited code._
+
+  English:
+
+  > Invalid link
+
+  日本語（下書き）:
+
+  > リンクが無効です
+
+- [ ] **2. instructions.js → `link.invalid_body`**
+
+  English:
+
+  > This link is not valid. Please open the link from your invitation email exactly as it was sent. If it still does not work, please contact the researcher.
+
+  日本語（下書き）:
+
+  > このリンクは無効です。案内メールに記載されたリンクを、送信されたとおりにそのまま開いてください。それでも開けない場合は、実験者にご連絡ください。
+
+- [ ] **3. instructions.js → `link.unchecked_title`**  
+  _The code could not be checked at all (the link-code file could not be loaded, or the browser lacks the means). Not the participant's fault._
+
+  English:
+
+  > The link could not be checked
+
+  日本語（下書き）:
+
+  > リンクを確認できませんでした
+
+- [ ] **4. instructions.js → `link.unchecked_body`**
+
+  English:
+
+  > Your link could not be checked because of a technical problem. Please reload the page in a few minutes. If it still does not work, please contact the researcher.
+
+  日本語（下書き）:
+
+  > 技術的な問題により、リンクを確認できませんでした。数分後にページを再読み込みしてください。それでも解決しない場合は、実験者にご連絡ください。
+
+## Consent revision: Approved consent text
 
 The consent title, text and checkbox are the **ethics-approved text** (source: the ethics-approved consent forms), as approved and lightly edited by the research team. They are listed for reference only: **not translations to check**, and not to be changed here. The English is the translation of the approved Japanese. `consent.body` and `consent.body_results_file` hold the same text. On screen, the headings are in bold without 【】, 【研究責任者】 and 【共同研究者】 are kept as written, and each researcher is on a line of their own.
 
-- [x] **1. instructions.js → `consent.title`**  
+- [x] **5. instructions.js → `consent.title`**  
   _Approved text (source: the ethics-approved consent forms). Not to check._
 
   English (translation):
@@ -33,7 +79,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > オンライン画像選択課題参加への同意確認
 
-- [x] **2. instructions.js → `consent.body` and `consent.body_results_file`** (the same text, `CONSENT_BODY_JA`)  
+- [x] **6. instructions.js → `consent.body` and `consent.body_results_file`** (the same text, `CONSENT_BODY_JA`)  
   _Approved text (source: the ethics-approved consent forms). Not to check. The full-width space at the start of each paragraph and 〔R6-26-1〕 are kept as given._
 
   English (translation; `CONSENT_BODY_EN`, with the two [GIVEN NAME] markers still to be filled in):
@@ -172,7 +218,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 本研究についてご質問やご懸念がございましたら、鈴木啓介までメールにてご連絡ください。
 
-- [x] **3. instructions.js → `consent.checkbox`**  
+- [x] **7. instructions.js → `consent.checkbox`**  
   _Approved text (source: the ethics-approved consent forms). Not to check. It no longer mentions being 18 or older._
 
   English (translation):
@@ -183,9 +229,9 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 上記の説明について理解し、自らの意思で本調査への参加に同意する
 
-## Latest revision: Reminder on the episode screens
+## Consent revision: Reminder on the episode screens
 
-- [ ] **4. instructions.js → `episodes.questions_intro`**  
+- [ ] **8. instructions.js → `episodes.questions_intro`**  
   _Changed: a last sentence asks participants not to type names or other identifying details. Shown just above the fields on every recalled episode screen (the approved consent text does not say this). The sentence is the one from the earlier placeholder consent._
 
   English:
@@ -198,7 +244,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Resume and CDS revision: Reload warning, resume screen, completion message
 
-- [ ] **5. instructions.js → `session.reload_warning`**  
+- [ ] **9. instructions.js → `session.reload_warning`**  
   _New. On the set-up screen, before block 1's practice and on the resume screen._
 
   English:
@@ -209,7 +255,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 回答が保存されたことが最後の画面で確認されるまで、このページを再読み込みしたり閉じたりしないでください。再読み込みしたり閉じたりすると実験が中断され、回答が失われる可能性があります。
 
-- [ ] **6. instructions.js → `session.resume_title`**  
+- [ ] **10. instructions.js → `session.resume_title`**  
   _New. Shown when the link of an unfinished session is opened again in the same browser._
 
   English:
@@ -220,7 +266,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 実験が中断されました
 
-- [ ] **7. instructions.js → `session.resume_body`**  
+- [ ] **11. instructions.js → `session.resume_body`**  
   _New. Only Continue is offered. 保持されており (kept in this browser), not 保存 (which could suggest the server)._
 
   English:
@@ -235,7 +281,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 続けると、全画面表示に戻ります。
 
-- [ ] **8. instructions.js → `session.resume_button`**  
+- [ ] **12. instructions.js → `session.resume_button`**  
   _New._
 
   English:
@@ -246,7 +292,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 続ける
 
-- [ ] **9. instructions.js → `session.completed`**  
+- [ ] **13. instructions.js → `session.completed`**  
   _New. Shown, and nothing else, when the link of a completed session is opened again in the same browser._
 
   English:
@@ -259,7 +305,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Resume and CDS revision: CDS items (replace the state items)
 
-- [ ] **10. instructions.js → `cds.instructions`**  
+- [ ] **14. instructions.js → `cds.instructions`**  
   _VERBATIM from the published Japanese CDS; please check it against the version the participants complete, not for style. Note the half-width parentheses and the space before はっきり, kept as given._
 
   English:
@@ -278,7 +324,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > それぞれの質問に、その最もあてはまるものを選択して答えてください。 はっきりと分からない場合には、推測でもかまいません。
 
-- [ ] **11. instructions.js → `cds.items.0.label`**  
+- [ ] **15. instructions.js → `cds.items.0.label`**  
   _Item 2. VERBATIM from the published Japanese CDS; please check it against the version the participants complete, not for style._
 
   English:
@@ -289,7 +335,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 私に見えているものは「平面的」で「生気がない」ように感じられる。まるで絵や写真のようである。
 
-- [ ] **12. instructions.js → `cds.items.1.label`**  
+- [ ] **16. instructions.js → `cds.items.1.label`**  
   _Item 13. VERBATIM from the published Japanese CDS; please check it against the version the participants complete, not for style._
 
   English:
@@ -300,7 +346,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > まるで、自分と外の世界との間にベールがかかっているかのように、自分の周囲が、自分から隔てられている、あるいは、現実でないような感じがする。
 
-- [ ] **13. instructions.js → `cds.items.2.label`**  
+- [ ] **17. instructions.js → `cds.items.2.label`**  
   _Item 19. VERBATIM from the published Japanese CDS; please check it against the version the participants complete, not for style._
 
   English:
@@ -311,7 +357,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 自分の周りのものが小さく、あるいは、ずっと遠くに見える。
 
-- [ ] **14. instructions.js → `cds.items.3.label`**  
+- [ ] **18. instructions.js → `cds.items.3.label`**  
   _Item 29. VERBATIM from the published Japanese CDS; please check it against the version the participants complete, not for style._
 
   English:
@@ -322,7 +368,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > もともと慣れ親しんでいた場所が、まるで見たことのない知らない場所のように見える。
 
-- [ ] **15. instructions.js → `cds.freq_options`**  
+- [ ] **19. instructions.js → `cds.freq_options`**  
   _Frequency 0 to 4, in this order. VERBATIM from the published Japanese CDS; please check it against the version the participants complete, not for style._
 
   English:
@@ -333,7 +379,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > まったくない,めったにない,ときどき,とてもよく,いつも
 
-- [ ] **16. instructions.js → `cds.dur_heading`**  
+- [ ] **20. instructions.js → `cds.dur_heading`**  
   _**PLEASE CHECK:** the heading above the duration options. The English is “In general, it lasts:”; the Japanese is 持続時間, as given._
 
   English:
@@ -344,7 +390,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 持続時間
 
-- [ ] **17. instructions.js → `cds.dur_options`**  
+- [ ] **21. instructions.js → `cds.dur_options`**  
   _Duration 1 to 6, in this order. VERBATIM from the published Japanese CDS; please check it against the version the participants complete, not for style._
 
   English:
@@ -355,7 +401,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 数秒間,数分間,数時間,一日程度,数日程度,一週間以上
 
-- [ ] **18. instructions.js → `cds.incomplete`**  
+- [ ] **22. instructions.js → `cds.incomplete`**  
   _New (not part of the CDS). Shown until every item is complete._
 
   English:
@@ -366,7 +412,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 続けるには、すべての項目にお答えください。経験のある項目については、持続時間も選択してください。
 
-- [ ] **19. instructions.js → `cds.button_submit`**  
+- [ ] **23. instructions.js → `cds.button_submit`**  
   _New._
 
   English:
@@ -379,7 +425,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Full screen and window check
 
-- [ ] **20. instructions.js → `screen.fs_body`**  
+- [ ] **24. instructions.js → `screen.fs_body`**  
   _Changed: a neutral reason (同様の条件で表示されるよう); must NOT mention the pictures._
 
   English:
@@ -394,7 +440,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 実験が終わるまで、全画面表示のままにしてください。
 
-- [ ] **21. instructions.js → `screen.small_body`**  
+- [ ] **25. instructions.js → `screen.small_body`**  
   _Changed: a neutral reason; must NOT mention the pictures._
 
   English:
@@ -415,7 +461,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Set-up screen (new, before the brightness screen)
 
-- [ ] **22. instructions.js → `calibration.setup_title`**  
+- [ ] **26. instructions.js → `calibration.setup_title`**  
   _New. Must not mention the pictures._
 
   English:
@@ -426,7 +472,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > はじめる前に
 
-- [ ] **23. instructions.js → `calibration.setup_body`**  
+- [ ] **27. instructions.js → `calibration.setup_body`**  
   _New. Position, distractions, laptops and desktops alike. Must not mention the pictures._
 
   English:
@@ -447,7 +493,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Brightness screen
 
-- [ ] **24. instructions.js → `calibration.brightness_intro`**  
+- [ ] **28. instructions.js → `calibration.brightness_intro`**  
   _Changed: no longer mentions the pictures or their darker areas; a neutral reason instead._
 
   English:
@@ -458,7 +504,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > すべての参加者に同様の条件で表示されるよう、画面の明るさを**最大**に設定し、実験中はそのままにしてください。
 
-- [ ] **25. instructions.js → `calibration.brightness_charger`**  
+- [ ] **29. instructions.js → `calibration.brightness_charger`**  
   _New._
 
   English:
@@ -469,7 +515,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > **充電器：**多くの機器はバッテリーで動作しているときに画面を暗くするため、コンピュータを充電器に接続してください。
 
-- [ ] **26. instructions.js → `calibration.brightness_auto`**  
+- [ ] **30. instructions.js → `calibration.brightness_auto`**  
   _New. True Tone and Night Shift are the names Apple uses in its Japanese settings; please check the other feature names are the ones Japanese users see (明るさの自動調節, ナイトモード, ブルーライトカット, バッテリー節約機能)._
 
   English:
@@ -480,7 +526,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > **自動機能：**可能であれば、明るさの自動調節（アダプティブブライトネス、自動輝度調整などとも呼ばれます）、True Tone、Night Shift やナイトモード、ブルーライトカット、バッテリー節約機能をオフにしてください。これらがオンになっているかわからない場合は、そのままお進みいただいて構いません。
 
-- [ ] **27. instructions.js → `calibration.brightness_lighting`**  
+- [ ] **31. instructions.js → `calibration.brightness_lighting`**  
   _New._
 
   English:
@@ -491,7 +537,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > **照明：**明るく安定した照明のある部屋でご参加ください。変化する日差しや、画面に直接当たる光は避けてください。画面は部屋の明るさに合わせて明るさを調節することがあります。
 
-- [ ] **28. instructions.js → `calibration.lighting_checkbox`**  
+- [ ] **32. instructions.js → `calibration.lighting_checkbox`**  
   _New. Second required checkbox, recorded as lighting_confirmed._
 
   English:
@@ -504,7 +550,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Screen calibration
 
-- [ ] **29. instructions.js → `calibration.gamma_intro`**  
+- [ ] **33. instructions.js → `calibration.gamma_intro`**  
   _Changed: the sentence about sitting back or squinting (少し離れて見たり、目を細めたり) is removed._
 
   English:
@@ -519,7 +565,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 2つのパターンが並んで表示されます。右側を調整して、2つが同じ灰色に見えるようにしてください。
 
-- [ ] **30. instructions.js → `calibration.gamma_prompt`**  
+- [ ] **34. instructions.js → `calibration.gamma_prompt`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -530,7 +576,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 2つの四角が同じ灰色に見えるまで右の四角を調整し、**「確定」**を押してください。
 
-- [ ] **31. instructions.js → `calibration.gamma_hint`**  
+- [ ] **35. instructions.js → `calibration.gamma_hint`**  
   _Changed slightly: “and” between the keys; formal._
 
   English:
@@ -543,7 +589,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Participant details
 
-- [ ] **32. instructions.js → `id.body`**  
+- [ ] **36. instructions.js → `id.body`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -554,7 +600,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 案内メールに記載された参加者IDを入力してください。メール内のリンクからこのページを開いた場合は、すでに入力されています。
 
-- [ ] **33. instructions.js → `id.id_hint`**  
+- [ ] **37. instructions.js → `id.id_hint`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -565,7 +611,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > R_ に続いて英数字15文字です。大文字と小文字は区別されます。
 
-- [ ] **34. instructions.js → `id.invalid`**  
+- [ ] **38. instructions.js → `id.invalid`**  
   _Changed: no dash; two sentences._
 
   English:
@@ -576,7 +622,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > このIDを確認できませんでした。案内メールをご確認ください。大文字と小文字は区別されます。
 
-- [ ] **35. instructions.js → `id.optional_note`**  
+- [ ] **39. instructions.js → `id.optional_note`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -587,7 +633,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > **お名前**と**メールアドレス**の入力は**任意**です。入力された場合は回答データとは別に保存され、本研究に関するご連絡にのみ使用します。
 
-- [ ] **36. instructions.js → `id.optional_note_results_file`**  
+- [ ] **40. instructions.js → `id.optional_note_results_file`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -598,7 +644,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > **お名前**と**メールアドレス**の入力は**任意**です。入力された場合は回答データと一緒に保存され（研究チームのみが閲覧できます）、本研究に関するご連絡にのみ使用します。
 
-- [ ] **37. instructions.js → `id.body_no_pid`**  
+- [ ] **41. instructions.js → `id.body_no_pid`**  
   _Changed: “Providing all three is preferable” (ご入力いただくことが望ましいです)._
 
   English:
@@ -617,7 +663,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > お名前とメールアドレスは回答データとは別に保存され、本研究に関するご連絡と、IDがない場合にあなたの回答を照合するためにのみ使用します。
 
-- [ ] **38. instructions.js → `id.body_no_pid_results_file`**  
+- [ ] **42. instructions.js → `id.body_no_pid_results_file`**  
   _Pavlovia version; the same change._
 
   English:
@@ -636,7 +682,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > お名前とメールアドレスは回答データと一緒に保存され、研究チームのみが閲覧できます。本研究に関するご連絡と、IDがない場合にあなたの回答を照合するためにのみ使用します。
 
-- [ ] **39. instructions.js → `id.privacy`**  
+- [ ] **43. instructions.js → `id.privacy`**  
   _New. Shown on the ID screen in every variant._
 
   English:
@@ -647,7 +693,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > あなたの個人情報が研究チーム以外の人に共有されることはありません。
 
-- [ ] **40. instructions.js → `id.retry_hint`**  
+- [ ] **44. instructions.js → `id.retry_hint`**  
   _Changed: “enter it again” (もう一度入力できます)._
 
   English:
@@ -660,7 +706,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Episode selection
 
-- [ ] **41. instructions.js → `episodes.screens.participant.derealization.body`**  
+- [ ] **45. instructions.js → `episodes.screens.participant.derealization.body`**  
   _Formal register (お書きください). Participants only._
 
   English:
@@ -675,7 +721,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > あとで見てそれとわかるように、下の欄にいくつかの言葉でお書きください（どこにいたか、何をしていたか、など）。その後の質問は、そのエピソードを思い出しやすくするためのものです。
 
-- [ ] **42. instructions.js → `episodes.screens.participant.ordinary.body`**  
+- [ ] **46. instructions.js → `episodes.screens.participant.ordinary.body`**  
   _Formal register; no dashes in the English. Participants only._
 
   English:
@@ -690,7 +736,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > あとで見てそれとわかるように、下の欄にいくつかの言葉でお書きください。その後の質問は、そのエピソードを思い出しやすくするためのものです。
 
-- [ ] **43. instructions.js → `episodes.screens.control.ordinary.body`**  
+- [ ] **47. instructions.js → `episodes.screens.control.ordinary.body`**  
   _Formal register. Controls: must NOT mention an interview._
 
   English:
@@ -705,7 +751,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > あとで見てそれとわかるように、下の欄にいくつかの言葉でお書きください（どこにいたか、何をしていたか、など）。その後の質問は、そのエピソードを思い出しやすくするためのものです。
 
-- [ ] **44. instructions.js → `episodes.optional_tag`**  
+- [ ] **48. instructions.js → `episodes.optional_tag`**  
   _New. Shown after the label of when / how long / where._
 
   English:
@@ -716,7 +762,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > （任意）
 
-- [ ] **45. instructions.js → `episodes.incomplete`**  
+- [ ] **49. instructions.js → `episodes.incomplete`**  
   _Changed: the words, the tone and the intensity are required._
 
   English:
@@ -729,7 +775,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Reinstatement
 
-- [ ] **46. instructions.js → `reinstate.body.derealization`**  
+- [ ] **50. instructions.js → `reinstate.body.derealization`**  
   _Formal register (できるだけ詳しく). Participants only._
 
   English:
@@ -748,7 +794,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > どこにいたか、周りに何があったか、何をしていたかなど、できるだけ詳しく思い出してください。
 
-- [ ] **47. instructions.js → `reinstate.body.ordinary`**  
+- [ ] **51. instructions.js → `reinstate.body.ordinary`**  
   _Formal register. Must NOT mention an interview._
 
   English:
@@ -769,7 +815,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Practice
 
-- [ ] **48. instructions.js → `practice.body.derealization`**  
+- [ ] **52. instructions.js → `practice.body.derealization`**  
   _LOAD-BEARING. New, before part 1 when it is the derealization episode. Bold: 同じ場所, あなたのエピソードが起きた場所ではありません, その場所の見え方だけであり、写っているものは同じです._
 
   English:
@@ -792,7 +838,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 正解・不正解はありません。最初の印象に従ってお答えください。
 
-- [ ] **49. instructions.js → `practice.body.ordinary`**  
+- [ ] **53. instructions.js → `practice.body.ordinary`**  
   _LOAD-BEARING. New, before part 1 when it is the ordinary episode. Must NOT mention an interview._
 
   English:
@@ -815,7 +861,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 正解・不正解はありません。最初の印象に従ってお答えください。
 
-- [ ] **50. instructions.js → `practice.body.expectation`**  
+- [ ] **54. instructions.js → `practice.body.expectation`**  
   _LOAD-BEARING. New, before part 1 when it is the expectation. Must NOT mention an interview._
 
   English:
@@ -834,7 +880,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 正解・不正解はありません。最初の印象に従ってお答えください。
 
-- [ ] **51. instructions.js → `practice.keys_line`**  
+- [ ] **55. instructions.js → `practice.keys_line`**  
   _New (was the end of practice.body)._
 
   English:
@@ -845,7 +891,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > **←** と **→** の矢印キーで、左または右の画像を選んでください。
 
-- [ ] **52. instructions.js → `practice.count_line`**  
+- [ ] **56. instructions.js → `practice.count_line`**  
   _New (was the end of practice.body). {N} = 3._
 
   English:
@@ -856,7 +902,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > まず{N}回の練習から始めます。
 
-- [ ] **53. instructions.js → `practice.intro_b2`**  
+- [ ] **57. instructions.js → `practice.intro_b2`**  
   _New (was practice.body_b2, without the count)._
 
   English:
@@ -867,7 +913,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 2つ目のパートも、1つ目と同じ方法で進みます。
 
-- [ ] **54. instructions.js → `practice.body_b2.derealization`**  
+- [ ] **58. instructions.js → `practice.body_b2.derealization`**  
   _LOAD-BEARING. New, before part 2, after the new question. Participants only._
 
   English:
@@ -878,7 +924,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 前のパートと同様に、画像に写っているのはあなたのエピソードが起きた場所ではなく、2枚が異なるのはその場所の見え方だけです。面接でお話しいただいたエピソードを思い浮かべ、そのときの周囲の風景の見え方により近いほうの画像を選んでください。
 
-- [ ] **55. instructions.js → `practice.body_b2.ordinary`**  
+- [ ] **59. instructions.js → `practice.body_b2.ordinary`**  
   _LOAD-BEARING. New, before part 2. Must NOT mention an interview._
 
   English:
@@ -889,7 +935,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 前のパートと同様に、画像に写っているのはあなたのエピソードが起きた場所ではなく、2枚が異なるのはその場所の見え方だけです。あなたが書いた、いつもどおりだったエピソードを思い浮かべ、そのときの周囲の風景の見え方により近いほうの画像を選んでください。
 
-- [ ] **56. instructions.js → `practice.body_b2.expectation`**  
+- [ ] **60. instructions.js → `practice.body_b2.expectation`**  
   _LOAD-BEARING. New, before part 2. Must NOT mention an interview._
 
   English:
@@ -900,7 +946,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 前のパートと同様に、2枚の画像が異なるのはその場所の見え方だけです。現実感喪失を体験している人の周囲の風景を想像し、その人にとっての見え方により近いと思うほうの画像を選んでください。
 
-- [ ] **57. instructions.js → `practice.continue_hint`**  
+- [ ] **61. instructions.js → `practice.continue_hint`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -911,7 +957,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > **スペースキー**を押すと練習が始まります。
 
-- [ ] **58. instructions.js → `practice.first_feedback.derealization`**  
+- [ ] **62. instructions.js → `practice.first_feedback.derealization`**  
   _LOAD-BEARING. New. Replaces the question for 3 s after the first practice trial, with only the chosen picture. Must confirm the participant’s own choice and never read as a correct answer._
 
   English:
@@ -922,7 +968,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > これが、そのエピソード中の周囲の風景の見え方により近いとして、あなたが選んだ画像です。
 
-- [ ] **59. instructions.js → `practice.first_feedback.ordinary`**  
+- [ ] **63. instructions.js → `practice.first_feedback.ordinary`**  
   _LOAD-BEARING. New; as above._
 
   English:
@@ -933,7 +979,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > これが、いつもどおりだったエピソード中の周囲の風景の見え方により近いとして、あなたが選んだ画像です。
 
-- [ ] **60. instructions.js → `practice.first_feedback.expectation`**  
+- [ ] **64. instructions.js → `practice.first_feedback.expectation`**  
   _LOAD-BEARING. New; as above._
 
   English:
@@ -944,7 +990,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > これが、現実感喪失を体験している人にとっての周囲の風景の見え方により近いと思うとして、あなたが選んだ画像です。
 
-- [ ] **61. instructions.js → `practice.end_body`**  
+- [ ] **65. instructions.js → `practice.end_body`**  
   _Changed: no number of trials and no duration._
 
   English:
@@ -963,7 +1009,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > **ときどき、画像のない画面が表示され**、特定の矢印キーを押すよう指示されます。これは画面を読んでいるかを確認するためのものです。制限時間はありませんので、落ち着いてお読みください。押せるのは一度だけです。
 
-- [ ] **62. instructions.js → `practice.end_body_b2`**  
+- [ ] **66. instructions.js → `practice.end_body_b2`**  
   _Changed: no number of trials._
 
   English:
@@ -978,7 +1024,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 1つ目のパートと同様に、途中に短い休憩があり、ときどき画像のない画面が表示されて、特定の矢印キーを押すよう指示されます。
 
-- [ ] **63. instructions.js → `practice.end_hint`**  
+- [ ] **67. instructions.js → `practice.end_hint`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -991,7 +1037,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Attention check
 
-- [ ] **64. instructions.js → `catch.instruction`**  
+- [ ] **68. instructions.js → `catch.instruction`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches. Must stay unmistakable._
 
   English:
@@ -1004,7 +1050,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Breaks and rest
 
-- [ ] **65. instructions.js → `brk.body`**  
+- [ ] **69. instructions.js → `brk.body`**  
   _Changed: rest your eyes, but avoid the phone or other devices. The progress line is unchanged._
 
   English:
@@ -1019,7 +1065,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 少し目を休めていただいて構いませんが、スマートフォンやその他の機器の使用はお控えください。全画面表示のままにしてください。
 
-- [ ] **66. instructions.js → `brk.hint`**  
+- [ ] **70. instructions.js → `brk.hint`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -1030,7 +1076,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 準備ができたら**スペースキー**を押してください。
 
-- [ ] **67. instructions.js → `rest.body`**  
+- [ ] **71. instructions.js → `rest.body`**  
   _Changed: rest your eyes, but avoid the phone or other devices (was: you may look away from the screen)._
 
   English:
@@ -1041,7 +1087,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 次のパートの前に、1分間休憩してください。目を休めていただいて構いませんが、スマートフォンやその他の機器の使用はお控えください。全画面表示のままにしてください。
 
-- [ ] **68. instructions.js → `rest.done`**  
+- [ ] **72. instructions.js → `rest.done`**  
   _Formal register._
 
   English:
@@ -1054,7 +1100,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: Word ratings
 
-- [ ] **69. words.js → `instruction.participant`**  
+- [ ] **73. words.js → `instruction.participant`**  
   _Changed: formal register; no dash in the English._
 
   English:
@@ -1077,7 +1123,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > すべての言葉について、0（まったく当てはまらない）から6（非常によく当てはまる）で評価してください。まったく当てはまらない言葉もありますが、その場合も、すべての言葉についてご回答ください。
 
-- [ ] **70. words.js → `instruction.control`**  
+- [ ] **74. words.js → `instruction.control`**  
   _Changed: formal register. Must NOT mention an interview._
 
   English:
@@ -1098,7 +1144,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## Texts, set-up and practice revision: End, loading and error screens
 
-- [ ] **71. instructions.js → `end.fail_done`**  
+- [ ] **75. instructions.js → `end.fail_done`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches. (No dash.)_
 
   English:
@@ -1109,7 +1155,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > ダウンロードが完了しました。メールでお送りいただいた後、このページを閉じていただいて構いません。
 
-- [ ] **72. instructions.js → `preload.message`**  
+- [ ] **76. instructions.js → `preload.message`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -1124,7 +1170,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > このページを閉じないでください。
 
-- [ ] **73. instructions.js → `error.title`**  
+- [ ] **77. instructions.js → `error.title`**  
   _English changed for the formal register only; the Japanese is unchanged. Please check it still matches._
 
   English:
@@ -1137,7 +1183,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## v5b: Episode selection (after calibration, before part 1)
 
-- [ ] **74. instructions.js → `episodes.screens.participant.derealization.title`**  
+- [ ] **78. instructions.js → `episodes.screens.participant.derealization.title`**  
   _Participants only. May mention the interview (面接)._
 
   English:
@@ -1148,7 +1194,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 面接でお話しいただいたエピソード
 
-- [ ] **75. instructions.js → `episodes.screens.participant.ordinary.title`**
+- [ ] **79. instructions.js → `episodes.screens.participant.ordinary.title`**
 
   English:
 
@@ -1158,7 +1204,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > いつもどおりだったエピソード
 
-- [ ] **76. instructions.js → `episodes.screens.control.ordinary.title`**
+- [ ] **80. instructions.js → `episodes.screens.control.ordinary.title`**
 
   English:
 
@@ -1168,7 +1214,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > いつもどおりだったエピソード
 
-- [ ] **77. instructions.js → `episodes.screens.control.expectation.title`**
+- [ ] **81. instructions.js → `episodes.screens.control.expectation.title`**
 
   English:
 
@@ -1178,7 +1224,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 現実感喪失
 
-- [ ] **78. instructions.js → `episodes.screens.control.expectation.body`**  
+- [ ] **82. instructions.js → `episodes.screens.control.expectation.body`**  
   _LOAD-BEARING. The v4 control anchoring text, last sentence reworded to match the new expectation question. 現実感喪失 should match the Japanese CDS-29. Must not mention an interview._
 
   English:
@@ -1193,7 +1239,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > この研究の一部では、現実感喪失を体験している人には周囲の風景がどのように見えていると思うかを想像してお答えください。
 
-- [ ] **79. instructions.js → `episodes.words.label`**  
+- [ ] **83. instructions.js → `episodes.words.label`**  
   _Required free-text field._
 
   English:
@@ -1204,7 +1250,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > このエピソードを表すいくつかの言葉
 
-- [ ] **80. instructions.js → `episodes.words.hint`**  
+- [ ] **84. instructions.js → `episodes.words.hint`**  
   _Example beside the field. Keep it free of visual words and of anything identifying._
 
   English:
@@ -1215,7 +1261,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 例：仕事帰りに歩いていたとき
 
-- [ ] **81. instructions.js → `episodes.questions.when.label`**  
+- [ ] **85. instructions.js → `episodes.questions.when.label`**  
   _Unchanged from v4 (was anchoring.questions.when)._
 
   English:
@@ -1226,7 +1272,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > それはいつでしたか？
 
-- [ ] **82. instructions.js → `episodes.questions.when.hint`**  
+- [ ] **86. instructions.js → `episodes.questions.when.hint`**  
   _Unchanged from v4._
 
   English:
@@ -1237,7 +1283,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 例：先週、2か月ほど前
 
-- [ ] **83. instructions.js → `episodes.questions.duration.label`**  
+- [ ] **87. instructions.js → `episodes.questions.duration.label`**  
   _Unchanged from v4._
 
   English:
@@ -1248,7 +1294,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > どのくらい続きましたか？
 
-- [ ] **84. instructions.js → `episodes.questions.duration.hint`**  
+- [ ] **88. instructions.js → `episodes.questions.duration.hint`**  
   _Unchanged from v4._
 
   English:
@@ -1259,7 +1305,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 例：数秒、1時間ほど
 
-- [ ] **85. instructions.js → `episodes.questions.where.label`**  
+- [ ] **89. instructions.js → `episodes.questions.where.label`**  
   _Unchanged from v4._
 
   English:
@@ -1270,7 +1316,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > どこにいましたか？
 
-- [ ] **86. instructions.js → `episodes.questions.where.hint`**  
+- [ ] **90. instructions.js → `episodes.questions.where.hint`**  
   _Unchanged from v4._
 
   English:
@@ -1281,7 +1327,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 例：自宅、電車の中、お店
 
-- [ ] **87. instructions.js → `episodes.questions.tone.label`**  
+- [ ] **91. instructions.js → `episodes.questions.tone.label`**  
   _New. Scale −3 … +3._
 
   English:
@@ -1292,7 +1338,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > そのときの気分は、どのようなものでしたか？
 
-- [ ] **88. instructions.js → `episodes.questions.tone.anchor_low`**
+- [ ] **92. instructions.js → `episodes.questions.tone.anchor_low`**
 
   English:
 
@@ -1302,7 +1348,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > とても不快
 
-- [ ] **89. instructions.js → `episodes.questions.tone.anchor_high`**
+- [ ] **93. instructions.js → `episodes.questions.tone.anchor_high`**
 
   English:
 
@@ -1312,7 +1358,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > とても心地よい
 
-- [ ] **90. instructions.js → `episodes.questions.intensity.label`**  
+- [ ] **94. instructions.js → `episodes.questions.intensity.label`**  
   _New. Scale 0 … 6._
 
   English:
@@ -1323,7 +1369,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > そのときの感情は、どのくらい強いものでしたか？
 
-- [ ] **91. instructions.js → `episodes.questions.intensity.anchor_low`**
+- [ ] **95. instructions.js → `episodes.questions.intensity.anchor_low`**
 
   English:
 
@@ -1333,7 +1379,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > まったく強くない
 
-- [ ] **92. instructions.js → `episodes.questions.intensity.anchor_high`**
+- [ ] **96. instructions.js → `episodes.questions.intensity.anchor_high`**
 
   English:
 
@@ -1343,7 +1389,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 非常に強い
 
-- [ ] **93. instructions.js → `episodes.button`**  
+- [ ] **97. instructions.js → `episodes.button`**  
   _Unchanged from v4._
 
   English:
@@ -1356,7 +1402,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## v5b: Reinstatement, the first screen of each part
 
-- [ ] **94. instructions.js → `reinstate.title`**  
+- [ ] **98. instructions.js → `reinstate.title`**  
   _{N} = 1 or 2, {TOTAL} = 2._
 
   English:
@@ -1367,7 +1413,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 第{N}部（全{TOTAL}部）
 
-- [ ] **95. instructions.js → `reinstate.body.expectation`**  
+- [ ] **99. instructions.js → `reinstate.body.expectation`**  
   _LOAD-BEARING. Controls only: must NOT mention an interview._
 
   English:
@@ -1382,7 +1428,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
   > 
   > 現実感喪失とは、周囲が奇妙に、あるいはよそよそしく感じられ、まるで自分が世界から切り離されているかのように感じられる体験です。
 
-- [ ] **96. instructions.js → `reinstate.button`**
+- [ ] **100. instructions.js → `reinstate.button`**
 
   English:
 
@@ -1394,7 +1440,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## v5b: Trial prompt (shown on every image trial, by episode)
 
-- [ ] **97. instructions.js → `prompt.main.derealization`**  
+- [ ] **101. instructions.js → `prompt.main.derealization`**  
   _LOAD-BEARING. Unchanged wording (was prompt.main.participant)._
 
   English:
@@ -1405,7 +1451,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > そのエピソード中の周囲の風景の見え方に、より近いのはどちらですか？
 
-- [ ] **98. instructions.js → `prompt.main.ordinary`**  
+- [ ] **102. instructions.js → `prompt.main.ordinary`**  
   _LOAD-BEARING. New. Must fit above the pictures._
 
   English:
@@ -1416,7 +1462,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > あなたが書いた、いつもどおりだったエピソード中の周囲の風景の見え方に、より近いのはどちらですか？
 
-- [ ] **99. instructions.js → `prompt.main.expectation`**  
+- [ ] **103. instructions.js → `prompt.main.expectation`**  
   _LOAD-BEARING. English changed from “might look” to “you think … look”; the Japanese already said 思う and is unchanged, please check it still matches._
 
   English:
@@ -1429,7 +1475,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## v5b: Practice
 
-- [ ] **100. instructions.js → `practice.question_changed`**  
+- [ ] **104. instructions.js → `practice.question_changed`**  
   _New. {QUESTION} = the new question._
 
   English:
@@ -1446,7 +1492,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## v5b: Breaks and rest
 
-- [ ] **101. instructions.js → `rest.title`**  
+- [ ] **105. instructions.js → `rest.title`**  
   _New._
 
   English:
@@ -1457,7 +1503,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 休憩
 
-- [ ] **102. instructions.js → `rest.wait`**
+- [ ] **106. instructions.js → `rest.wait`**
 
   English:
 
@@ -1467,7 +1513,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 1分たつと「次へ」ボタンが表示されます。
 
-- [ ] **103. instructions.js → `rest.button`**
+- [ ] **107. instructions.js → `rest.button`**
 
   English:
 
@@ -1479,7 +1525,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 ## v5b: Word ratings
 
-- [ ] **104. words.js → `title`**  
+- [ ] **108. words.js → `title`**  
   _Unchanged._
 
   English:
@@ -1490,7 +1536,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 言葉の評価
 
-- [ ] **105. words.js → `question_short.participant`**  
+- [ ] **109. words.js → `question_short.participant`**  
   _Changed: as instruction.participant._
 
   English:
@@ -1501,7 +1547,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
   > 面接でお話しいただいたエピソード（「{WORDS}」）の間、それぞれの言葉は、あなたの周囲の風景の見え方をどの程度よく表していますか。
 
-- [ ] **106. words.js → `question_short.control`**  
+- [ ] **110. words.js → `question_short.control`**  
   _Unchanged._
 
   English:
@@ -1516,7 +1562,7 @@ The consent title, text and checkbox are the **ethics-approved text** (source: t
 
 _Unchanged. The consent title, text and checkbox are the approved text, listed at the top._
 
-- [ ] **107. instructions.js → `consent.button_agree`**
+- [ ] **111. instructions.js → `consent.button_agree`**
 
   English:
 
@@ -1526,7 +1572,7 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
   > 同意して次へ
 
-- [ ] **108. instructions.js → `consent.button_decline`**
+- [ ] **112. instructions.js → `consent.button_decline`**
 
   English:
 
@@ -1536,7 +1582,7 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
   > 同意しない
 
-- [ ] **109. instructions.js → `consent.declined_title`**
+- [ ] **113. instructions.js → `consent.declined_title`**
 
   English:
 
@@ -1546,7 +1592,7 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
   > ありがとうございました
 
-- [ ] **110. instructions.js → `consent.declined_body`**
+- [ ] **114. instructions.js → `consent.declined_body`**
 
   English:
 
@@ -1562,7 +1608,7 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
 ## ID screen: link without a participant ID (ID, or name and email)
 
-- [ ] **111. instructions.js → `id.name_label_plain`**
+- [ ] **115. instructions.js → `id.name_label_plain`**
 
   English:
 
@@ -1572,7 +1618,7 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
   > お名前
 
-- [ ] **112. instructions.js → `id.email_label_plain`**
+- [ ] **116. instructions.js → `id.email_label_plain`**
 
   English:
 
@@ -1582,7 +1628,7 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
   > メールアドレス
 
-- [ ] **113. instructions.js → `id.need_id_or_contact`**  
+- [ ] **117. instructions.js → `id.need_id_or_contact`**  
   _Shown by the browser in a small bubble next to the ID field._
 
   English:
@@ -1593,31 +1639,9 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
   > 参加者ID、またはお名前とメールアドレスを入力してください。
 
-## Incomplete link (no group, or no valid slot, in the link)
-
-- [ ] **114. instructions.js → `link.missing_title`**
-
-  English:
-
-  > Incomplete link
-
-  日本語（下書き）:
-
-  > リンクが不完全です
-
-- [ ] **115. instructions.js → `link.missing_body`**
-
-  English:
-
-  > This link is incomplete. Please use the full link from your invitation email, or contact the researcher.
-
-  日本語（下書き）:
-
-  > このリンクは不完全です。案内メールに記載されたリンクをそのまま使用するか、実験者にご連絡ください。
-
 ## Full screen and window check (hard stop)
 
-- [ ] **116. instructions.js → `screen.small_title`**
+- [ ] **118. instructions.js → `screen.small_title`**
 
   English:
 
@@ -1627,7 +1651,7 @@ _Unchanged. The consent title, text and checkbox are the approved text, listed a
 
   > このウィンドウはこの実験には小さすぎます
 
-- [ ] **117. instructions.js → `screen.small_size`**  
+- [ ] **119. instructions.js → `screen.small_size`**  
   _Unchanged; listed for context._
 
   English:

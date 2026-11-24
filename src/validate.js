@@ -43,6 +43,12 @@
  *                            block positions (index.html refuses shortened
  *                            runs and single blocks), the dev trial label
  *                            (index.html refuses it), consent.
+ *   checkLinkCodes(file, participant, opts)
+ *                            data/links/codes.json: loaded and well formed
+ *                            (index.html: a warning in debug mode, an error
+ *                            in production; dev.html: a warning), and on
+ *                            index.html an ID screen that accepts a typed ID
+ *                            or a name and email.
  *
  *   checkImageNames(pkg)     DEV ONLY (dev.html and tools/check_package.js):
  *                            every image a list or practice row shows is
@@ -786,6 +792,8 @@ var Validate = (function () {
        'calibration.brightness_charger', 'calibration.brightness_auto',
        'calibration.brightness_lighting', 'calibration.brightness_checkbox',
        'calibration.lighting_checkbox', 'id.privacy',
+       'link.invalid_title', 'link.invalid_body',
+       'link.unchecked_title', 'link.unchecked_body',
        'episodes.optional_tag', 'episodes.questions_intro',
        'episodes.incomplete'].forEach(function (k) {
         need(lang, 'TEXT.' + k, _get(T, k));
@@ -993,6 +1001,52 @@ var Validate = (function () {
     return { errors: errors, warnings: warnings };
   }
 
+  // =======================================================================
+  // LINK CODES (data/links/codes.json, link-code.js)
+  //   file = Loader.codesFile(): { path, loaded, error, problems, count }
+  //   opts = { devMode, production }
+  // index.html needs the file: without it no link can be opened. A debug
+  // session only warns (so the rest can be tested); a production session
+  // (index.html, debug off) is refused. dev.html only warns: its old
+  // parameters work without the file.
+  // index.html also needs the ID screen to accept a typed ID, or a name and
+  // email instead: its links never carry the ID.
+  // =======================================================================
+  function checkLinkCodes(file, P, opts) {
+    var errors = [], warnings = [];
+    opts = opts || {};
+    file = file || {};
+    var where = file.path || 'data/links/codes.json';
+    if (!file.loaded) {
+      var msg = where + ' could not be loaded (' + (file.error || 'missing') + '). ' +
+                'index.html cannot open any link without it (participants see ' +
+                '"The link could not be checked"); copy the public file there ' +
+                '(SETUP.md, "Link codes").';
+      if (opts.devMode) {
+        warnings.push(where + ' could not be loaded (' + (file.error || 'missing') +
+                      '): ?code= cannot be checked here, and index.html cannot ' +
+                      'start sessions. The old parameters still work on dev.html.');
+      } else if (opts.production) {
+        errors.push(msg);
+      } else {
+        warnings.push(msg);
+      }
+    } else if ((file.problems || []).length) {
+      var m2 = where + ' is not a valid link-code file: ' + file.problems.join('; ') + '.';
+      if (opts.devMode) warnings.push(m2); else errors.push(m2);
+    }
+    if (!opts.devMode) {
+      P = P || {};
+      if (!(P.collect_id && P.allow_manual_id && P.collect_name && P.collect_email)) {
+        errors.push('index.html links carry only a code, never the participant ID: ' +
+                    'CONFIG.participant needs collect_id, allow_manual_id, ' +
+                    'collect_name and collect_email all on, so the ID can be typed ' +
+                    '(or a name and email given instead).');
+      }
+    }
+    return { errors: errors, warnings: warnings };
+  }
+
   function _isProduction() {
     return !window.DEV_MODE && !CONFIG.debug;
   }
@@ -1018,6 +1072,12 @@ var Validate = (function () {
       contactStorage: Platform.contactStorage(),
     }));
     add(checkConfig(CONFIG, data, { devMode: !!window.DEV_MODE }));
+    add(checkLinkCodes(Loader.codesFile(), CONFIG.participant,
+                       { devMode: !!window.DEV_MODE, production: _isProduction() }));
+    if (!window.DEV_MODE && typeof LinkCode !== 'undefined' && !LinkCode.available()) {
+      warnings.push('This browser has no crypto.subtle (an http page other than ' +
+                    'localhost?): link codes cannot be checked here.');
+    }
     if (window.DEV_MODE) add(checkImageNames(data));
 
     // --- Participant fields and contact ---------------------------------
@@ -1077,6 +1137,10 @@ var Validate = (function () {
                                  set: b.set, list: b.list, practice: b.practice };
                       }) : [],
       interview_date: Loader.interviewDate(),
+      link_status:    Loader.linkStatus().status,
+      link_id:        Loader.linkId(),
+      link_phase:     Loader.linkPhase(),
+      link_codes:     Loader.codesFile().loaded ? Loader.codesFile().count : null,
     };
 
     return _result(errors, warnings, summary);
@@ -1194,6 +1258,7 @@ var Validate = (function () {
     checkPackage: checkPackage,
     checkText:    checkText,
     checkConfig:  checkConfig,
+    checkLinkCodes: checkLinkCodes,
     checkImageNames: checkImageNames,
   };
 })();

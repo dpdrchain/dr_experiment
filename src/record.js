@@ -98,7 +98,13 @@ var Record = (function () {
       libraries:            Platform.libraries(),
       language:             Loader.language(),
 
-      // From the invitation link.
+      // From the invitation link. index.html: link_id, link_phase, group
+      // and slot all come from the link's code (?code=); interview_date is
+      // empty there (added afterwards from the private table). dev.html:
+      // ?group=, ?slot=, ?idate= as before (link_id and link_phase empty),
+      // or a ?code=.
+      link_id:              Loader.linkId(),
+      link_phase:           Loader.linkPhase(),
       group:                Loader.group(),
       slot:                 Loader.slot(),
       interview_date:       Loader.interviewDate(),
@@ -145,10 +151,12 @@ var Record = (function () {
   }
 
   // Who is running the session, once the ID screen has accepted an ID.
-  function stampParticipant(jsPsych, participantId, isSuperuser) {
+  // is_test: a superuser ID, or a session started with a test code
+  // (link_phase 'test') — ParticipantID.isTest().
+  function stampParticipant(jsPsych, participantId, isTest) {
     jsPsych.data.addProperties({
       participant_id: participantId,
-      is_test:        isSuperuser,
+      is_test:        !!isTest,
     });
   }
 
@@ -351,13 +359,16 @@ var Record = (function () {
   }
 
   // -----------------------------------------------------------------------
-  // Filename for the uploaded file:
-  //     <participant_id>_<stimulus_set>_<session start, Japan time>.csv
-  //     e.g. R_9rJJWk01c767jE8_v5c_180_2026-11-30T14-12-40.csv
+  // Filename for the uploaded file, the group first so the two groups can
+  // be told apart without opening the files:
+  //     <group>_<participant_id>_<stimulus_set>_<session start, Japan time>.csv
+  //     e.g. participant_R_9rJJWk01c767jE8_v5c_180_2026-11-30T14-12-40.csv
+  // (Pavlovia adds its own parts around this: see the save node in main.js.)
   // -----------------------------------------------------------------------
   function sessionFilename(participantId) {
     var set = Loader.stimulusSet();
-    return participantId + '_' + set + '_' + sessionStamp() + '.csv';
+    return (Loader.group() || 'nogroup') + '_' + participantId + '_' + set + '_' +
+           sessionStamp() + '.csv';
   }
 
   // The name the response file is saved under. A session resumed AT the

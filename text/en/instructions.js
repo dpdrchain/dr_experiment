@@ -194,10 +194,20 @@ var TEXT_EN = {
 
   // --- Incomplete link: no valid ?group= or ?slot= -------------------------
   // Same kind of message as a missing participant ID.
+  // The link screens (main.js). Nothing is recorded on either.
+  // invalid_*:   a missing, unknown, malformed or tampered link code.
+  // unchecked_*: the code could not be checked at all (the link-code file
+  //              could not be loaded, or the browser lacks the means), so
+  //              the participant's link is not called invalid.
   link: {
-    missing_title: 'Incomplete link',
-    missing_body:  '<p>This link is incomplete. Please use the full link from ' +
-                   'your invitation email, or contact the researcher.</p>',
+    invalid_title:   'Invalid link',
+    invalid_body:    '<p>This link is not valid. Please open the link from your ' +
+                     'invitation email exactly as it was sent. If it still does ' +
+                     'not work, please contact the researcher.</p>',
+    unchecked_title: 'The link could not be checked',
+    unchecked_body:  '<p>Your link could not be checked because of a technical ' +
+                     'problem. Please reload the page in a few minutes. If it ' +
+                     'still does not work, please contact the researcher.</p>',
   },
 
   // --- Consent (the first screen) -------------------------------------------
@@ -590,6 +600,11 @@ var TEXT_EN = {
 
   // --- Participant details: ONE screen with ID, name and email ------------
   // Only the fields switched on in CONFIG.participant are shown.
+  // The participant details screen. index.html links carry only a code,
+  // never the ID, so participants always see the body_no_pid* variant
+  // (an ID, or a name and email). `body` (the ID pre-filled from ?pid=)
+  // and missing_* (allow_manual_id off, which index.html refuses) are
+  // shown on dev.html only.
   id: {
     title:          'Before we begin',
     body:           '<p>Please enter your participant ID from your invitation ' +
