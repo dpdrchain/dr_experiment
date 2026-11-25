@@ -769,7 +769,7 @@ var Validate = (function () {
                       'the participant\'s own choice, not a correct answer.');
         }
       });
-      ['keys_line', 'count_line', 'intro_b2', 'continue_hint', 'end_title',
+      ['keys_line', 'fixation_line', 'count_line', 'intro_b2', 'continue_hint', 'end_title',
        'end_body', 'end_body_b2', 'end_hint'].forEach(function (k) {
         need(lang, 'TEXT.practice.' + k, _get(T, 'practice.' + k));
       });

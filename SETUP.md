@@ -529,6 +529,10 @@ address as `--base-url` (§7).
   agree" smaller below it) and of long episode names (wrapping inside the
   card), in both languages and both groups, at 1056 x 666, 1280 x 720 and
   1440 x 900.
+- `NODE_PATH=~/.cache/dpdr-test/node_modules node tools/test_fixation_line_e2e.js`:
+  the sentence about the fixation cross (once, on the screen before part 1's
+  practice, in both languages and both groups, and in the short test link),
+  and that both practice introductions fit 1056 x 666 without scrolling.
 
 #### Editing the table in Excel or Numbers
 

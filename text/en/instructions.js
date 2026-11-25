@@ -407,7 +407,8 @@ var TEXT_EN = {
   // body_b2.<episode> before block 2), as is the message after the first
   // practice response (first_feedback.<episode>). The question itself is
   // the episode-dependent prompt above the pictures.
-  // Screen before block 1's practice:  body.<episode>, keys_line, count_line.
+  // Screen before block 1's practice:  body.<episode>, keys_line,
+  //                                    fixation_line, count_line.
   // Screen before block 2's practice:  intro_b2, question_changed,
   //                                    body_b2.<episode>, count_line.
   // {N} = practice trials in this block, {QUESTION} = this block's question.
@@ -450,6 +451,11 @@ var TEXT_EN = {
     keys_line:
       '<p>Please use the <b>&#8592;</b> and <b>&#8594;</b> arrow keys to ' +
       'choose the picture on the left or on the right.</p>',
+    // The fixation cross before every pair (CONFIG.timing.fixation_ms).
+    fixation_line:
+      '<p>Before each pair of pictures, a small cross (+) appears in the ' +
+      'centre of the screen. Please look at the cross until the pictures ' +
+      'appear.</p>',
     count_line: '<p>We will begin with {N} practice trials.</p>',
 
     // Before block 2's practice.
