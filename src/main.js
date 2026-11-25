@@ -63,9 +63,17 @@
 // an explicit node in _buildSaveNodes() instead.
 // The hooks save progress in the browser after every screen and trial and
 // number the rows across segments (progress.js).
+// The full-screen guard flags rows shown while the page was out of full
+// screen (fullscreen-guard.js), before progress.js stores them.
 var jsPsych = initJsPsych({
-  on_trial_start: function (trial) { Progress.onTrialStart(trial); },
-  on_data_update: function (data) { Progress.onDataUpdate(data); },
+  on_trial_start: function (trial) {
+    FullscreenGuard.onTrialStart(trial);
+    Progress.onTrialStart(trial);
+  },
+  on_data_update: function (data) {
+    FullscreenGuard.onDataUpdate(data);
+    Progress.onDataUpdate(data);
+  },
 });
 
 // Holds whatever the save step reports back, so the completion screen can
@@ -132,6 +140,11 @@ function _buildSaveNodes() {
   nodes.push({
     type: jsPsychCallFunction,
     func: function () {
+      // The saving step: the full-screen guard stops here (the experiment
+      // leaves full screen itself, and the final screens are exempt), and
+      // its totals go on every row.
+      FullscreenGuard.stop();
+      FullscreenGuard.stamp(jsPsych);
       if (document.fullscreenElement && document.exitFullscreen) {
         document.exitFullscreen().catch(function () {});
       }
@@ -182,7 +195,7 @@ function _buildSaveNodes() {
     nodes.push({
       type:          jsPsychPipe,
       action:        'save',
-      experiment_id: CONFIG.datapipe.experiment_id,
+      experiment_id: Platform.datapipeId(),
       filename:      function () {
         return Record.dataFilename(ParticipantID.get());
       },
@@ -319,7 +332,10 @@ function _buildCompletionNode() {
         html = '<div class="card end-card"><h2>' + E.title + '</h2>' + E.body;
       }
 
-      if (CONFIG.debug) {
+      // The saving-status box: in debug mode, and always on the short test
+      // link (dev.html, CONFIG.dev.show_save_status), whose runs check that
+      // uploading works.
+      if (CONFIG.debug || (window.DEV_MODE && CONFIG.dev && CONFIG.dev.show_save_status)) {
         html += '<hr><div class="debug-box">';
         html += '<p><b>Debug — not shown to participants</b></p>';
         html += '<p>Platform: <code>' + platform + '</code> (setting <code>' +
@@ -336,7 +352,7 @@ function _buildCompletionNode() {
                   '(contact_storage <code>results_file</code>), nothing sent ' +
                   'to DataPipe.</p>';
         } else {
-          html += '<p>Contact upload (to ' + CONFIG.contact_datapipe.experiment_id +
+          html += '<p>Contact upload (to ' + Platform.contactDatapipeId() +
                   '): ' + _statusHTML(ParticipantID.contactStatus()) + '</p>';
         }
         if (ParticipantID.contactReply()) {
@@ -360,7 +376,7 @@ function _buildCompletionNode() {
           html += '<p class="fail">No upload was attempted.</p>';
         } else if (UPLOAD_RESULT.success) {
           html += '<p>' + (platform === 'pavlovia' ? 'Responses' :
-                  'Responses upload (to ' + CONFIG.datapipe.experiment_id + ')') +
+                  'Responses upload (to ' + Platform.datapipeId() + ')') +
                   ': ' + _statusHTML(UPLOAD_RESULT.status) + '</p>';
         } else if (platform === 'pavlovia') {
           html += '<p class="fail">Saving to Pavlovia FAILED. Check that the ' +
@@ -370,7 +386,7 @@ function _buildCompletionNode() {
         } else {
           html += '<p class="fail">Upload FAILED. Check that ' +
                   '&ldquo;Enable data collection&rdquo; is switched on for ' +
-                  'experiment <code>' + CONFIG.datapipe.experiment_id +
+                  'experiment <code>' + Platform.datapipeId() +
                   '</code> on the DataPipe dashboard.</p>';
         }
         if (UPLOAD_RESULT.detail) {
@@ -595,6 +611,7 @@ function runExperiment(opts) {
   Progress.register('episodes', EpisodesPhase.state, EpisodesPhase.restore);
   Progress.register('record', Record.state, Record.restore);
   Progress.register('words', WordsPhase.state, WordsPhase.restore);
+  Progress.register('fullscreen', FullscreenGuard.state, FullscreenGuard.restore);
   // Restores the modules and the rows, before the timeline is built.
   Progress.start(jsPsych, key, stored, window.DEV_MODE ? _devConfig() : null);
 
@@ -621,6 +638,10 @@ function runExperiment(opts) {
         shortened:    shortened,
         shortened_to: shortened ? (lim.max_trials || null) : null,
         shortened_practice_to: shortened ? (lim.max_practice || null) : null,
+        // Short test link: the block's first catch trial added after a cut
+        // that came before it (loader.js, limits.ensure_catch).
+        short_catch_added_b1: !!(Loader.block(1) && Loader.block(1).catchAdded),
+        short_catch_added_b2: !!(Loader.block(2) && Loader.block(2).catchAdded),
         positions_run: positions.join(','),
         // Resuming: whether browser storage works, and the interruptions.
         resume_available:   Progress.available(),

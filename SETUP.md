@@ -81,10 +81,19 @@ The values are already in `config.js`:
 
 ```js
 datapipe: {
-  experiment_id: 'VoYGtg5yKGr2',  // TEST experiment — replace before data collection
+  experiment_id:      'VoYGtg5yKGr2',  // TEST experiment — replace before data collection
+  test_experiment_id: 'VoYGtg5yKGr2',  // dev.html uploads: keep the TEST experiment
   zenodo_record: '[Zenodo record — to complete]',
 }
 ```
+
+`index.html` always uploads to `experiment_id`. **`dev.html` always uploads
+to `test_experiment_id`**: the short test links (§6), the menu's "Upload
+test", and the contact file of any dev session
+(`contact_datapipe.test_experiment_id`, `T8mzFmXrMcjw`). When you put the
+real experiments in `experiment_id`, leave `test_experiment_id` as it is.
+Test runs then never reach the real data. `validate.js` warns while the
+two are still equal.
 
 DataPipe stores each uploaded file on **Zenodo** (the mechanism is the same
 as it was with OSF). **Both experiment IDs in `config.js` (responses and
@@ -512,6 +521,9 @@ address as `--base-url` (§7).
   the code links in a browser, on `localhost`, with temporary codes made
   outside the repository. Playwright is installed as described in
   `tools/test_trial_label.js`.
+- `NODE_PATH=~/.cache/dpdr-test/node_modules node tools/test_dev_short_e2e.js`:
+  the short test link and the "Please return to full screen" overlay, the
+  same way.
 
 #### Editing the table in Excel or Numbers
 
@@ -671,6 +683,73 @@ It runs everything in a temporary folder outside the repository and prints
 - **The scheme:** the test vectors.
 - **Safety:** the refusal inside the repository.
 
+### Short test links (dev.html)
+
+A short test link runs the whole session as a participant sees it, in the
+chosen language, without the developer menu. It is for someone (for
+example a research assistant checking the Japanese wording) who should go
+through every screen and also check that uploading works:
+
+```
+https://dpdrchain.github.io/dr_experiment/dev.html?code=<test code>&lang=ja&preset=short&n=41
+```
+
+**What it runs:**
+
+- consent, ID screen, set-up, brightness and calibration;
+- the episode screens;
+- the **practice of both blocks in full**;
+- each block cut to its first **n** main trials. With 41, the first short
+  break, after trial 40, is shown. If the cut comes before a block's first
+  catch trial (n below 11 to 37, depending on the list), that catch trial
+  is added after trial n.
+- the one-minute rest, whose **Continue is available at once**
+  (`rest_skipped` recorded);
+- the word ratings and the CDS items;
+- the final screen, which always shows the saving-status box, so the
+  tester can see whether the upload worked.
+
+No trial labels are shown.
+
+**Where the data go.** The responses and the separate contact file are
+uploaded like a real session, but only to the **test** DataPipe
+experiments (`test_experiment_id`, §3), never the real ones. File names
+start with **`dev_`** (`dev_participant_Z_21121989_v5c_180_….csv`,
+`dev_participant_contact_…`). Every row has `is_dev`, `is_test`,
+`shortened`, `shortened_to = n`, `link_id` and `link_phase`.
+
+**Rules:**
+
+- **Test codes only.** A pilot or main code, a link without a code, or an
+  `n` outside 1 to 200 shows a short message, *"Short test link refused"*,
+  and does not start.
+- **Reusable.** The link never expires and can be run any number of times,
+  since dev.html has no completion check. A reload resumes the session.
+- **Not on index.html.** It ignores `preset` and `n`, so test codes there
+  still run the full session.
+
+**What to tell the tester:** type the test ID `CHAIN_2026` on the ID
+screen. If they fill in a name and email, those are uploaded too, to the
+test contact experiment, which tests that upload as well.
+
+**Building the links.** Japanese, 41 trials per block, one link per test
+code, run from your clone:
+
+```bash
+python3 tools/make_links.py --private-dir ~/dpdr_private/link_codes \
+    --base-url https://dpdrchain.github.io/dr_experiment/ \
+    --dev-short 41 --lang ja --public-file data/links/codes.json
+```
+
+This writes `links_private_test_ja_short41.csv` in the private folder; add
+`--show` to print the links.
+
+- **Only test codes:** `--dev-short` selects the test rows by itself, and
+  refuses `--phase pilot` or `--phase main`.
+- **Other variations:** use `--lang en` for English, and `--group
+  participant` or `--group control` for one group
+  (`links_private_test_participant_ja_short41.csv`).
+
 ---
 
 ## 7. Pavlovia
@@ -796,6 +875,24 @@ https://run.pavlovia.org/<user>/<project>/`. Pavlovia's own parameters (such
 as `__pilotToken`) are left alone. `dev.html` works there too:
 `https://run.pavlovia.org/<user>/<project>/dev.html?group=participant&slot=1`; its
 "Upload test" saves to Pavlovia.
+
+**dev.html on Pavlovia, including the short test links.** Everything works,
+except that Pavlovia has no separate test destination: it has no DataPipe,
+so `test_experiment_id` does not apply there.
+
+- **Where the files go:** dev.html sessions are saved by Pavlovia to the
+  **same `data/` folder** as real sessions, with name and email kept in the
+  response file. They are told apart by their rows (`is_dev`, `is_test`,
+  `shortened`) and by their name: `dev_` is put at the start of the part
+  we set, so Pavlovia's name reads
+  `<project>_dev_<group>_<participant_id>_v5c_180_<Japan-time stamp>_SESSION_<…>.csv`.
+  Pavlovia puts its project name in front, so `dev_` comes second.
+- **Credits and piloting:** in **Running** mode each dev session (each run
+  of a short test link) uses a credit, like a real one. In **Piloting**
+  mode nothing is saved to Pavlovia; the file is downloaded on the tester's
+  computer instead.
+- **The recommendation:** send short test links for the GitHub Pages site,
+  where the data go to the test DataPipe experiments.
 
 ### Updating
 

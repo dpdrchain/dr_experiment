@@ -253,11 +253,12 @@ var ParticipantID = (function () {
                Record.sessionStartISO(), stamp];
     var csv = header.join(',') + '\n' + row.map(_csvField).join(',') + '\n';
 
-    // <group>_contact_<participant_id>_<session start, Japan time>.csv
-    var filename = (Loader.group() || 'nogroup') + '_contact_' + _id + '_' +
+    // <group>_contact_<participant_id>_<session start, Japan time>.csv,
+    // with dev_ in front on dev.html.
+    var filename = Record.devPrefix() + (Loader.group() || 'nogroup') + '_contact_' + _id + '_' +
                    Record.sessionStamp() + '.csv';
 
-    jsPsychPipe.saveData(CONFIG.contact_datapipe.experiment_id, filename, csv)
+    jsPsychPipe.saveData(Platform.contactDatapipeId(), filename, csv)
       .then(function (result) {
         _contactStatus = pipeStatus(result);
         _contactSaved  = (_contactStatus !== 'failed');

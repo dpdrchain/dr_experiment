@@ -909,3 +909,23 @@ body.allow-scaling .stim-panel {
   font: inherit;
 }
 .dev-action:hover { border-color: #4a6fa5; background: #f7f9fc; }
+
+/* --- "Please return to full screen" (fullscreen-guard.js) ------------------
+   Above everything, over the whole window; the task underneath is paused
+   for the participant (keys and clicks outside it are caught). */
+.fs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: safe center;
+  padding: 1rem;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.82);
+}
+.fs-overlay-card {
+  max-width: 640px;
+  margin: auto;
+}
+.fs-overlay-failed p { color: #a40000; font-weight: 600; }

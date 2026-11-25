@@ -315,9 +315,10 @@ var TEXT_EN = {
     // approved consent text does not say this).
     questions_intro:
       'The following questions are intended to help you recall the episode. ' +
-      'The questions marked as optional may be left blank. Please do not ' +
-      'include names or other details that could identify you or anyone ' +
-      'else.',
+      'The questions marked as optional may be left blank. However, we ' +
+      'would appreciate it if you could make the effort to answer them. ' +
+      'Please do not include names or other details that could identify ' +
+      'you or anyone else.',
     // Added after the label of each optional question.
     optional_tag: '(optional)',
     questions: {
@@ -521,6 +522,18 @@ var TEXT_EN = {
       'conditions for everyone.</p>' +
       '<p>Please remain in full screen until the study ends.</p>',
     fs_button:  'Enter full screen',
+
+    // The overlay shown whenever the page leaves full screen during the
+    // session (fullscreen-guard.js): the task is paused under it until the
+    // button returns to full screen. return_failed is added under the body
+    // when the browser refuses; the overlay stays.
+    return_title:  'Please return to full screen',
+    return_body:   '<p>This study needs to be shown in full screen. Please click ' +
+                   'the button below to continue.</p>',
+    return_button: 'Return to full screen',
+    return_failed: '<p>Full screen could not be restored. Please click the ' +
+                   'button again. If it still does not work, please contact ' +
+                   'the researcher.</p>',
 
     small_title: 'This window is too small for the study',
     small_body:

@@ -443,7 +443,9 @@ var Loader = (function () {
   //     feedback    practice feedback on/off
   //     feedbackTrials  how many of the practice trials (the first n) get
   //                 feedback: 0 when off
-  //     targets     the catch targets, in order }
+  //     targets     the catch targets, in order
+  //     catchAdded  true when the short test link added the block's first
+  //                 catch trial after a cut (limits.ensure_catch) }
   // null when the session has no valid assignment row.
   // -----------------------------------------------------------------------
   function block(position) {
@@ -455,11 +457,23 @@ var Loader = (function () {
     }
     if (!b) return null;
 
-    var rows = (_data.lists[b.list] || []).slice();
+    var all  = (_data.lists[b.list] || []).slice();
+    var rows = all;
     var prac = (_data.practice[b.practice] || []).slice(0, practiceCount(position));
     var lim = limits();
-    if (lim.max_trials   > 0) rows = rows.slice(0, lim.max_trials);
+    var catchAdded = false;
+    if (lim.max_trials   > 0) rows = all.slice(0, lim.max_trials);
     if (lim.max_practice > 0) prac = prac.slice(0, lim.max_practice);
+    // Short test link (limits.ensure_catch): a block cut before its first
+    // catch trial gets that catch trial as one extra trial right after the
+    // last kept one. It keeps its own trial number and, being the block's
+    // first catch, the block's first catch target.
+    if (lim.max_trials > 0 && lim.ensure_catch &&
+        !rows.some(function (r) { return r.trial_type === 'catch'; })) {
+      for (var c = 0; c < all.length; c++) {
+        if (all[c].trial_type === 'catch') { rows = rows.concat([all[c]]); catchAdded = true; break; }
+      }
+    }
 
     return {
       position:     position,
@@ -469,6 +483,7 @@ var Loader = (function () {
       practiceFile: b.practice,
       rows:         rows,
       fullLength:   (_data.lists[b.list] || []).length,
+      catchAdded:   catchAdded,
       practice:     prac,
       feedback:     practiceFeedback(position),
       feedbackTrials: practiceFeedbackTrials(position),
@@ -480,8 +495,9 @@ var Loader = (function () {
   // always zero here (and validate.js refuses to start if they are set).
   function limits() {
     var L = CONFIG.limits || {};
-    if (!window.DEV_MODE) return { max_trials: 0, max_practice: 0 };
-    return { max_trials: L.max_trials || 0, max_practice: L.max_practice || 0 };
+    if (!window.DEV_MODE) return { max_trials: 0, max_practice: 0, ensure_catch: false };
+    return { max_trials: L.max_trials || 0, max_practice: L.max_practice || 0,
+             ensure_catch: !!L.ensure_catch };
   }
 
   // The images a block shows: its practice and main rows, catch rows

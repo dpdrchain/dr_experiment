@@ -14,6 +14,14 @@ with the columns link_id, phase, group, slot, pid, tester, link. A link is
   <base-url>?code=<code>             or, with --lang,
   <base-url>?code=<code>&lang=ja
 
+SHORT TEST LINKS (--dev-short N): for test codes only, links to the short
+test session on dev.html (SETUP.md, "Short test links"):
+
+  <base-url>dev.html?code=<code>&lang=ja&preset=short&n=N
+
+written to links_private_test[_<group>][_<lang>]_short<N>.csv. --dev-short
+selects the test rows by itself and refuses --phase pilot or main.
+
 Never commit these files: they hold the codes. The same safety rules as
 make_link_codes.py apply (this script reuses its reading and checks): the
 private folder must be outside this repository; links are printed only
@@ -23,7 +31,7 @@ Usage (Python 3.8+, standard library only):
 
   python3 tools/make_links.py --private-dir DIR --base-url URL
           [--lang ja|en] [--phase test|pilot|main] [--group participant|control]
-          [--public-file FILE] [--show]
+          [--public-file FILE] [--dev-short N] [--show]
 
 --public-file: before writing, check that every selected code opens its
 entry in that public file with the same link_id, phase, group and slot.
@@ -48,19 +56,35 @@ OUT_COLUMNS = ['link_id', 'phase', 'group', 'slot', 'pid', 'tester', 'link']
 LANGS = ('ja', 'en')
 
 
-def out_name(phase, group, lang):
+def out_name(phase, group, lang, dev_short=None):
     parts = [x for x in (phase, group, lang) if x]
+    if dev_short:
+        parts.append('short%d' % dev_short)
     return 'links_private' + ''.join('_' + x for x in parts) + '.csv'
 
 
-def make_link(base, code, lang):
+def _base(base):
     if '?' in base or '#' in base:
         raise mlc.Problem('--base-url must not contain "?" or "#": %s' % base)
     if not (base.startswith('https://') or base.startswith('http://')):
         raise mlc.Problem('--base-url must start with https:// (or http:// for a local test): %s' % base)
     if not (base.endswith('/') or base.endswith('.html')):
         base += '/'
-    return base + '?code=' + code + (('&lang=' + lang) if lang else '')
+    return base
+
+
+def make_link(base, code, lang):
+    return _base(base) + '?code=' + code + (('&lang=' + lang) if lang else '')
+
+
+def make_dev_short_link(base, code, lang, n):
+    """The short test session on dev.html: the site folder + dev.html (a
+    base ending in a page, e.g. index.html, has that page replaced)."""
+    base = _base(base)
+    if base.endswith('.html'):
+        base = base[:base.rfind('/') + 1]
+    return (base + 'dev.html?code=' + code + (('&lang=' + lang) if lang else '') +
+            '&preset=short&n=%d' % n)
 
 
 def check_public(rows, public_file):
@@ -102,8 +126,17 @@ def main(argv=None):
     ap.add_argument('--phase', choices=mlc.PHASES, help='only this phase')
     ap.add_argument('--group', choices=mlc.GROUPS, help='only this group')
     ap.add_argument('--public-file', help='check every selected code against this public file first')
+    ap.add_argument('--dev-short', type=int, metavar='N',
+                    help='short test links on dev.html (test codes only), N main trials '
+                         'per block (1 to 200; 41 shows the first break)')
     ap.add_argument('--show', action='store_true', help='print the links')
     args = ap.parse_args(argv)
+    if args.dev_short is not None:
+        if not 1 <= args.dev_short <= 200:
+            ap.error('--dev-short N: N must be from 1 to 200 (main trials per block)')
+        if args.phase and args.phase != 'test':
+            ap.error('--dev-short is for test codes only: it refuses --phase %s' % args.phase)
+        args.phase = 'test'
     try:
         private_dir = Path(args.private_dir).expanduser().resolve()
         root = mlc.repo_root()
@@ -126,7 +159,11 @@ def main(argv=None):
         if not sel:
             raise mlc.Problem('No rows match --phase %s --group %s.' % (args.phase or '(any)',
                                                                         args.group or '(any)'))
-        links = [make_link(args.base_url, r['code'], args.lang) for r in sel]
+        if args.dev_short is not None:
+            links = [make_dev_short_link(args.base_url, r['code'], args.lang, args.dev_short)
+                     for r in sel]
+        else:
+            links = [make_link(args.base_url, r['code'], args.lang) for r in sel]
         if args.public_file:
             pf = Path(args.public_file).expanduser().resolve()
             problems = check_public(sel, pf)
@@ -139,7 +176,7 @@ def main(argv=None):
         for r, link in zip(sel, links):
             w.writerow([r['link_id'], r['phase'], r['group'], r['_slot'],
                         r.get('pid', ''), r.get('tester', ''), link])
-        out = private_dir / out_name(args.phase, args.group, args.lang)
+        out = private_dir / out_name(args.phase, args.group, args.lang, args.dev_short)
         mlc.atomic_write(out, b'\xef\xbb\xbf' + buf.getvalue().encode('utf-8'), 0o600)
         counts = {}
         for r in sel:

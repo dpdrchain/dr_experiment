@@ -33,6 +33,15 @@
  * only here: Loader ignores the limits outside dev.html, and validate.js
  * refuses to start index.html while they are set.
  *
+ * SHORT TEST LINK: dev.html?code=<test code>&lang=ja&preset=short&n=41
+ * skips this menu and starts the session at once (see _shortLink below):
+ * the whole session as a participant sees it, practice in full, each block
+ * cut to its first n main trials (plus the block's first catch trial if
+ * the cut comes before it), the rest's Continue available at once, no
+ * trial labels, uploaded to the TEST DataPipe experiments. Only test codes
+ * (link_phase 'test'). A reload resumes. For a research assistant to check
+ * the wording and the upload from a link, without this menu.
+ *
  * TRIAL LABEL: the "Trial label" box (on by default) sets
  * CONFIG.dev.trial_label for whichever preset or custom session is
  * started, showing a small label under the images on every practice and
@@ -265,7 +274,89 @@ var DevMenu = (function () {
   // -----------------------------------------------------------------------
   // Render the menu. `onStart` is called once a preset is chosen.
   // -----------------------------------------------------------------------
+  // -----------------------------------------------------------------------
+  // The short test link (?preset=short). null when the link has no
+  // preset=short; otherwise { n } or { error } (developer-facing English).
+  // -----------------------------------------------------------------------
+  function _shortLink() {
+    var q = new URLSearchParams(window.location.search);
+    if (q.get('preset') !== 'short') return null;
+    if (!q.has('code')) {
+      return { error: 'A short test link needs a test code: ' +
+                      'dev.html?code=<test code>&preset=short&n=41.' };
+    }
+    var ls = Loader.linkStatus();
+    if (ls.status !== 'ok') {
+      return { error: 'The code could not be used (' + ls.status + ': ' + ls.reason + ').' };
+    }
+    if (Loader.linkPhase() !== 'test') {
+      return { error: 'Only test codes can start a short test session. This is a ' +
+                      Loader.linkPhase() + ' code (' + Loader.linkId() + '); it is for ' +
+                      'index.html only.' };
+    }
+    var b = Loader.block(1);
+    var full = b ? b.fullLength : 200;
+    var raw = q.has('n') ? q.get('n') : '41';
+    var n = /^\d+$/.test(raw) ? parseInt(raw, 10) : NaN;
+    if (!(n >= 1 && n <= full)) {
+      return { error: 'n must be a whole number from 1 to ' + full +
+                      ' (main trials per block); the link has n=' + raw + '.' };
+    }
+    return { n: n };
+  }
+
+  // The settings of the short test link: everything a participant sees,
+  // practice in full (max_practice 0 = all), blocks cut to n, uploads.
+  function _shortConfig(n) {
+    var calibration = {};
+    CALIB_KEYS.forEach(function (k) { calibration[k] = CALIB_DEFAULTS[k]; });
+    return {
+      platform:    _uploadPlatform(),
+      blocks:      JSON.parse(JSON.stringify(BLOCK_DEFAULTS)),
+      calibration: calibration,
+      limits:      { max_trials: n, max_practice: 0, ensure_catch: true },
+      dev:         { trial_label: false, rest_skippable: true, show_save_status: true },
+    };
+  }
+
+  function _runShortLink(req, onStart) {
+    if (req.error) {
+      console.warn('[Dev] short test link refused: ' + req.error);
+      document.body.innerHTML =
+        '<div class="dev-menu"><h1>Short test link refused</h1>' +
+        '<p class="dev-warning">' + _esc(req.error) + '</p>' +
+        '<p>The session has not started. Nothing was recorded.</p></div>';
+      return;
+    }
+    var cfg = _shortConfig(req.n);
+    _apply(cfg);
+    // A stored session for this link with the same settings is resumed
+    // (as on index.html); one with other settings (another n, or started
+    // from the menu) cannot be, and is cleared.
+    var key = Progress.sessionKey(ParticipantID.fromURL());
+    var stored = Progress.find(key);
+    if (stored && JSON.stringify((stored.log && stored.log.config) || null) !==
+                  JSON.stringify(_devConfigNow())) {
+      console.log('[Dev] the stored session for this link had other settings: cleared.');
+      Progress.clear(key);
+    }
+    console.log('[Dev] short test link: n = ' + req.n + ', platform = ' + CONFIG.platform);
+    document.body.innerHTML = '';
+    onStart({ resume: true });
+  }
+
+  // As main.js stores the dev settings with a session (_devConfig).
+  function _devConfigNow() {
+    return JSON.parse(JSON.stringify({
+      blocks: CONFIG.blocks, calibration: CONFIG.calibration,
+      limits: CONFIG.limits || null, platform: CONFIG.platform, dev: CONFIG.dev || null,
+    }));
+  }
+
   function show(summary, onStart) {
+    var shortReq = _shortLink();
+    if (shortReq) { _runShortLink(shortReq, onStart); return; }
+
     var group = Loader.group();
     var slot  = Loader.slot();
     var a     = Loader.assignment();
@@ -327,8 +418,10 @@ var DevMenu = (function () {
     html += '<tr><th>platform</th><td><code>' + _esc(Platform.name()) + '</code>' +
             (CONFIG.platform === 'auto' ? ' (auto, from this address)' : ' (set in config.js)') +
             ' &mdash; presets save locally; the upload test saves via <code>' +
-            _esc(_uploadPlatform()) + '</code> (DataPipe: <code>' +
-            _esc(CONFIG.datapipe.experiment_id) + '</code>, a TEST experiment)</td></tr>';
+            _esc(_uploadPlatform()) + '</code> (DataPipe: always the test experiments, ' +
+            '<code>' + _esc(Platform.datapipeId()) + '</code> and, for the contact file, <code>' +
+            _esc(Platform.contactDatapipeId()) + '</code>; file names start with ' +
+            '<code>dev_</code>)</td></tr>';
     html += '<tr><th>libraries</th><td><code>' + _esc(Platform.libraries()) + '</code>' +
             (CONFIG.libraries !== Platform.libraries()
               ? ' (config says <code>' + _esc(CONFIG.libraries) + '</code>, only on Pavlovia)' : '') +
