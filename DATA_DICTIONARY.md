@@ -26,7 +26,11 @@ e.g. participant_R_9rJJWk01c767jE8_v5c_180_2026-11-30T14-10-40.csv
 ```
 
 The **group comes first**, so the two groups can be told apart without
-opening the files.
+opening the files. **`dev.html` sessions** (test runs, including the short
+test link) start with **`dev_`**, on every platform:
+`dev_participant_Z_21121989_v5c_180_2026-11-30T14-10-40.csv`. They upload
+only to the **test** DataPipe experiments
+(`CONFIG.datapipe.test_experiment_id`), never to the real ones.
 
 The stamp is the **start of the session** (when the consent screen
 appeared) in **Japan time** (UTC+9, whatever time zone the participant's
@@ -55,8 +59,10 @@ that. A pilot run
 downloaded to the computer that ran it.
 
 A full session produces **1254 rows** (1255 on Pavlovia, one or two more
-if ID entry needed a retry) and about **190 columns** (194 for participants,
-188 for controls, `link_id` and `link_phase` included). Each interruption that was resumed adds about six rows
+if ID entry needed a retry) and about **200 columns** (202 for participants,
+196 for controls, `link_id`, `link_phase`, the full-screen totals and the
+short-link columns included; two more, `fullscreen_exit` and
+`fullscreen_exit_ms`, when the page left full screen at least once). Each interruption that was resumed adds about six rows
 (the `resume` row, full screen, the window check, the download start, and
 inside a block its preload gate and reinstatement screen) and, once, the 12
 `resume` columns (§16). The columns differ slightly between the
@@ -152,7 +158,7 @@ of trials also carry `block_position` (1 or 2).
 | 7 | Gamma match | *(empty)* | 3 | `gamma_*` (session-level, §5) |
 | 8 | Episode selection | `episode` | 2 | one row per screen, with `episode`; the answers as `ep_*` columns on every row (§6) |
 | 9 | **Block 1** | `preload`, `block_start`, `reinstate`, `practice_intro`, `pairs`, `fixation`, `practice_feedback`, `blank`, `practice_end`, `catch_lockout`, `break`, `block_end` | 617 | **the data** (§7). 3 practice + 200 main `pairs` rows |
-| 10 | Rest | `rest` | 1 | `rest_ms`, `rest_extra_ms`, `rest_resumed_left_ms` (only when the rest was resumed after an interruption: the ms that remained; empty otherwise); `rest_start`, `rest_end` session-level |
+| 10 | Rest | `rest` | 1 | `rest_ms`, `rest_extra_ms`, `rest_actual_ms` (how long the rest screen was shown), `rest_skipped`, `rest_resumed_left_ms` (only when the rest was resumed after an interruption: the ms that remained; empty otherwise); `rest_start`, `rest_end`, `rest_skipped` session-level |
 | 11 | **Block 2** | as block 1 | 617 | as block 1 |
 | 12 | Word ratings | `word_instructions`, `word_ratings` | 1 + 1 | the ten ratings (§9); `rating_foggy`, `rating_faded` session-level |
 | 13 | CDS items | `cds` | 1 | `cds_q02_freq` … `cds_q29_score` (§10) |
@@ -217,7 +223,13 @@ These repeat identically on every row, so read them from any row with
 | `is_test` | `False` | `True` when a test ID was used (`Z_21121989`, yours, or `CHAIN_2026`, colleagues), **or** the session was started with a test code (`link_phase = test`) |
 | `is_dev` | `False` | `True` when the session started from `dev.html`, or was shortened |
 | `shortened` | `False` | `True` when a dev run cut each block to its first `shortened_to` trials (`CONFIG.limits`, dev.html only). Such a session is never valid data |
-| `shortened_to`, `shortened_practice_to` | empty | the limits of a shortened run; empty otherwise |
+| `shortened_to`, `shortened_practice_to` | empty | the limits of a shortened run; empty otherwise. The short test link (`dev.html?code=…&preset=short&n=N`) sets `shortened_to = N` and leaves `shortened_practice_to` empty: its practice is complete |
+| `short_catch_added_b1`, `short_catch_added_b2` | `False` | `True` when the short test link cut a block before its first catch trial and added that catch trial right after trial N (it keeps its own `block_trial`, e.g. 31, and the block's first catch target). Always `False` in a full session |
+| `rest_skipped` | `False` | `True` when Continue was pressed before the 60-second rest was over: possible only on the short test link (dev.html), whose rest screen shows Continue at once. Always `False` on index.html |
+| `fullscreen_exit_count` | `0` | how many times the page left full screen during the session (from the full-screen screen until the saving step). §17 |
+| `fullscreen_exit_total_ms` | `0` | their total duration (ms) |
+| `fullscreen_reentry_failures` | `0` | clicks on "Return to full screen" that the browser refused |
+| `fullscreen_exit_log` | `[]` | JSON list, one object per exit (§17) |
 | `positions_run` | `1,2` | which block positions ran. Always `1,2` outside dev.html |
 | `id_source` | `typed` / `no_id` / `url` | on the `participant_id` row only. `typed` = typed on the ID screen (always, on `index.html`: links carry no ID); `no_id` = no ID given, name and email instead; `url` = from `?pid=` unchanged (`dev.html` only) |
 | `id_entered`, `id_valid` | | on the `participant_id` row only |
@@ -264,7 +276,7 @@ slot 130 row 2, and so on.
 |---|---|
 | `block1_start`, `block2_start` | UTC. The block began: after its image-download gate, as its reinstatement screen appeared |
 | `block1_end`, `block2_end` | UTC. After the answer to the block's last main trial |
-| `rest_start`, `rest_end` | UTC. The rest screen appeared / Continue was pressed. At least 60 s apart |
+| `rest_start`, `rest_end` | UTC. The rest screen appeared / Continue was pressed. At least 60 s apart, except on the short test link (`rest_skipped = True`) |
 | `catch_fail_b1`, `catch_fail_b2` | catch trials of that block answered with a key other than the target, 0–5. Empty if the block did not run |
 | `catch_fail_total` | the sum. **Exclusion rule (applied in the analysis): 3 or more** (design.json `catch.exclude_at_or_above`, over the session) |
 
@@ -633,6 +645,7 @@ For a complete, usable session:
 | check | expected |
 |---|---|
 | `is_test`, `is_dev`, `shortened` | all `False` |
+| `rest_skipped`, `short_catch_added_b1`, `short_catch_added_b2` | all `False` |
 | `link_id`, `link_phase` | `link_phase` `pilot` or `main`; `link_id` = `<link_phase>_<group>_<slot, 3 digits>` |
 | `participant_id` | a real ID, or `NOID_…` with `contact_saved = True` |
 | `group` | `participant` or `control`, and the first part of the file name |
@@ -790,3 +803,54 @@ those of the first segment.
 and (before a practice-end screen or a main trial) `reinstate`. These are
 extra rows; `block1_start` and the other session stamps keep their first
 values.
+
+---
+
+## 17. Leaving full screen
+
+Full screen is requested once, before the brightness screen. From the
+moment the page is actually in full screen until the saving step (where
+the experiment leaves full screen itself; the final screens are exempt),
+every exit, for example by pressing Esc, brings up an overlay: *"Please
+return to full screen"*, with a button that returns to it. While the
+overlay is shown, key presses and clicks do not reach the screen
+underneath. **Timers are not paused** ("run and flag"):
+
+- a fixation, blank, catch lockout or feedback screen runs out under the
+  overlay;
+- the next response screen then waits under it;
+- the rest countdown keeps counting, so time behind the overlay counts as
+  rest.
+
+If the browser refuses to return to full screen, the overlay stays and
+says so; there is no way past it. A session in a browser that never
+entered full screen at all is never guarded, so it cannot get stuck.
+
+**On each row whose screen was on while the page was out of full screen:**
+
+| column | meaning |
+|---|---|
+| `fullscreen_exit` | `True`; empty on every other row |
+| `fullscreen_exit_ms` | how long, during that screen, the page was out of full screen (ms) |
+
+- **Image-pair rows:** on a flagged row, **`rt` includes the time outside
+  full screen**. Use `rt − fullscreen_exit_ms` with care, or exclude the
+  trial.
+- **The first teaching feedback** (3 s, practice) can be hidden behind the
+  overlay if the exit happens during it. Its row is flagged.
+
+**On every row (session totals):** `fullscreen_exit_count`,
+`fullscreen_exit_total_ms`, `fullscreen_reentry_failures`, and
+`fullscreen_exit_log`. The log is a JSON list with one object per exit:
+
+| key | meaning |
+|---|---|
+| `start`, `end` | UTC, ISO 8601. `end` is `null` when a reload interrupted the exit |
+| `ms` | its duration; `null` with `end` |
+| `block`, `phase`, `block_position`, `block_trial` | the screen on display when the page left full screen |
+| `segment` | the session segment (0 before any interruption; §16) |
+
+`fullscreen_exit_total_ms` is the sum of the `ms` values. Exits are kept
+across a reload. After a resumption, the guard starts again only once the
+page is back in full screen, so it never covers the resume screen.
+

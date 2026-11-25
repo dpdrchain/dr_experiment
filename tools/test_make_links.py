@@ -7,7 +7,8 @@ Runs make_link_codes.py and make_links.py in a temporary folder outside
 this repository: links for every row and with filters and a language (one
 file per combination), the link format, the hand-typed pid and tester
 copied, a table saved by a spreadsheet (BOM, 17.0 slots), --public-file
-passing and failing, the refusals (inside the repository, no table, a
+passing and failing, the short test links (--dev-short: test codes only,
+the dev.html link, the refusals), the refusals (inside the repository, no table, a
 broken table, no matching rows, a base URL with a query), links printed
 only with --show, and .gitignore.
 """
@@ -214,6 +215,51 @@ class MakeLinks(unittest.TestCase):
         rc, out = self.links('--phase', 'pilot')
         self.assertEqual(rc, 1, out)
         self.assertIn('No rows match', out)
+
+    def test_dev_short_links(self):
+        rc, out = self.links('--dev-short', 41, '--lang', 'ja', '--public-file', self.pub)
+        self.assertEqual(rc, 0, out)
+        f = self.priv / 'links_private_test_ja_short41.csv'
+        self.assertEqual(stat.S_IMODE(f.stat().st_mode), 0o600)
+        rows = read_rows(f)
+        table = [t for t in read_rows(self.table) if t['phase'] == 'test']
+        self.assertEqual(len(rows), len(table))                 # test codes only (2 per group)
+        for r, t in zip(rows, table):
+            self.assertEqual(r['phase'], 'test')
+            self.assertEqual(r['link'], BASE + 'dev.html?code=' + t['code'] + '&lang=ja&preset=short&n=41')
+            self.assertNotIn(t['code'], out)                    # not printed without --show
+        # A group, no language, another n; --show prints them.
+        rc, out = self.links('--dev-short', 3, '--group', 'control', '--show')
+        self.assertEqual(rc, 0, out)
+        rows = read_rows(self.priv / 'links_private_test_control_short3.csv')
+        self.assertEqual([r['group'] for r in rows], ['control', 'control'])
+        for r in rows:
+            self.assertTrue(r['link'].endswith('&preset=short&n=3'), r['link'])
+            self.assertNotIn('&lang=', r['link'])
+            self.assertIn(r['link'], out)
+        # --phase test is accepted; a base ending in index.html gets dev.html.
+        rc, out = run(LINKS, '--private-dir', self.priv, '--base-url',
+                      'https://x.github.io/dr_experiment/index.html', '--phase', 'test',
+                      '--dev-short', 41, '--lang', 'en')
+        self.assertEqual(rc, 0, out)
+        self.assertTrue(read_rows(self.priv / 'links_private_test_en_short41.csv')[0]['link']
+                        .startswith('https://x.github.io/dr_experiment/dev.html?code='))
+        # Refusals: pilot or main, and N outside 1..200. Nothing written.
+        for extra in (['--phase', 'pilot'], ['--phase', 'main']):
+            rc, out = self.links('--dev-short', 41, *extra)
+            self.assertEqual(rc, 2, out)
+            self.assertIn('test codes only', out)
+        for n in (0, 201, -5):
+            rc, out = self.links('--dev-short', n)
+            self.assertEqual(rc, 2, out)
+            self.assertIn('1 to 200', out)
+        self.assertFalse(list(self.priv.glob('links_private_pilot*short*')))
+        self.assertFalse(list(self.priv.glob('links_private_main*short*')))
+        # A broken table, or inside the repository: refused as for the
+        # other links.
+        rc, out = run(LINKS, '--private-dir', HERE.parent, '--base-url', BASE, '--dev-short', 41)
+        self.assertEqual(rc, 1, out)
+        self.assertIn('inside this repository', out)
 
     def test_gitignore(self):
         lines = (HERE.parent / '.gitignore').read_text().split()

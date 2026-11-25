@@ -12,8 +12,15 @@
  *   One row, block 'rest'. On every row (session properties):
  *     rest_start     when the rest screen appeared (UTC, ISO 8601)
  *     rest_end       when Continue was pressed
- *   On the rest row: rest_ms (the fixed length) and rest_extra_ms (how long
- *   Continue was on screen before it was pressed).
+ *     rest_skipped   true when Continue was pressed before the rest was
+ *                    over (only possible on the short test link)
+ *   On the rest row: rest_ms (the fixed length), rest_extra_ms (how long
+ *   Continue was on screen before it was pressed) and rest_actual_ms (how
+ *   long the rest screen was shown).
+ *
+ * SHORT TEST LINK (dev.html, CONFIG.dev.rest_skippable): the same screen
+ * and countdown, but Continue is there from the start, so the wording can
+ * be checked without waiting; rest_skipped = true when it is pressed early.
  * ========================================================================= */
 
 var RestPhase = (function () {
@@ -49,18 +56,23 @@ var RestPhase = (function () {
         Record.markRest(jsPsych, 'start', restStart);
         var lastBeat = 0;
 
+        // Short test link only: Continue from the start.
+        var skippable = !!(window.DEV_MODE && CONFIG.dev && CONFIG.dev.rest_skippable);
+
         var display = jsPsych.getDisplayElement();
         display.innerHTML =
           '<div class="card rest-card"><h2>' + R.title + '</h2>' + R.body +
           '<p class="rest-clock" id="rest-clock">' + _mmss(total) + '</p>' +
           '<p class="hint" id="rest-wait">' + R.wait + '</p>' +
           '<div class="btn-row"><button id="rest-continue" class="calib-btn" ' +
-          'type="button" style="display:none">' + R.button + '</button></div>' +
+          'type="button"' + (skippable ? '' : ' style="display:none"') + '>' +
+          R.button + '</button></div>' +
           '</div>';
 
         var clock = document.getElementById('rest-clock');
         var wait  = document.getElementById('rest-wait');
         var btn   = document.getElementById('rest-continue');
+        if (skippable) shownAt = start;
 
         var timer = setInterval(function () {
           var spent = Date.now() - start.getTime();
@@ -84,9 +96,14 @@ var RestPhase = (function () {
 
         btn.addEventListener('click', function () {
           var end = new Date();
+          var early = (total - (end.getTime() - start.getTime())) > 0;
+          clearInterval(timer);
           Record.markRest(jsPsych, 'end', end);
+          jsPsych.data.addProperties({ rest_skipped: early });
           result = {
             rest_ms:       CONFIG.timing.rest_ms,
+            rest_actual_ms: end.getTime() - start.getTime(),
+            rest_skipped:  early,
             // On a resumed rest: the time that remained when it resumed.
             rest_resumed_left_ms: resumedLeft,
             rest_extra_ms: shownAt ? end.getTime() - shownAt.getTime() : null,

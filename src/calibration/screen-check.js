@@ -125,7 +125,10 @@ var ScreenCheck = (function () {
           Loader.text().screen.fs_body + '</div>',
         button_label: Loader.text().screen.fs_button,
         data: { block: 'fullscreen' },
-        on_finish: function () { _restoreFocus(); },
+        // From here until the saving step, leaving full screen brings up
+        // the "Please return to full screen" overlay (fullscreen-guard.js);
+        // armed once the page is actually in full screen.
+        on_finish: function () { _restoreFocus(); FullscreenGuard.expect(); },
       });
     }
 
@@ -202,6 +205,7 @@ var ScreenCheck = (function () {
             // stored progress is kept, so opening the link again in a
             // larger window continues the session.
             Progress.guard(false);
+            FullscreenGuard.stop();
             // Leave full screen so the participant can resize or close.
             if (document.fullscreenElement && document.exitFullscreen) {
               document.exitFullscreen().catch(function () {});

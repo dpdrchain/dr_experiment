@@ -19,6 +19,13 @@
  *       loads, because it decides whether the DataPipe plugin is loaded —
  *       a dev session switched to 'local' on Pavlovia keeps it.
  *
+ *   Platform.datapipeId()      the DataPipe experiment for the responses
+ *   Platform.contactDatapipeId()   ... and for the contact file
+ *       dev.html: ALWAYS the test experiments (CONFIG.datapipe.
+ *       test_experiment_id, CONFIG.contact_datapipe.test_experiment_id),
+ *       index.html: ALWAYS experiment_id. (Pavlovia has no DataPipe: its
+ *       responses go to the Pavlovia project, as before.)
+ *
  *   Platform.libraries()       'bundled' | 'pavlovia'
  *       The copy actually loaded. 'pavlovia' (Pavlovia's own lib/vendors/)
  *       exists only on Pavlovia; anywhere else our copy in vendor/ is used
@@ -70,6 +77,15 @@ var Platform = (function () {
     var c = (CONFIG.participant && CONFIG.participant.contact_storage) || 'auto';
     if (c !== 'auto') return c;
     return (_loadPlatform === 'pavlovia') ? 'results_file' : 'datapipe';
+  }
+
+  function datapipeId() {
+    var d = CONFIG.datapipe || {};
+    return window.DEV_MODE ? (d.test_experiment_id || '') : (d.experiment_id || '');
+  }
+  function contactDatapipeId() {
+    var d = CONFIG.contact_datapipe || {};
+    return window.DEV_MODE ? (d.test_experiment_id || '') : (d.experiment_id || '');
   }
 
   function libraries() {
@@ -140,6 +156,8 @@ var Platform = (function () {
     name:                name,
     loadPlatform:        function () { return _loadPlatform; },
     contactStorage:      contactStorage,
+    datapipeId:          datapipeId,
+    contactDatapipeId:   contactDatapipeId,
     libraries:           libraries,
     isPavloviaPilotLink: isPavloviaPilotLink,
     loaded:              function () { return _loaded.slice(); },

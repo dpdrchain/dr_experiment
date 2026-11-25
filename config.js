@@ -98,9 +98,16 @@ var CONFIG = {
   // IMPORTANT: on the DataPipe dashboard, "Enable data collection?" must be
   // switched ON or every upload is rejected. The experiment will report the
   // rejection on screen, but it is easy to forget.
+  //
+  // test_experiment_id: where EVERY dev.html upload goes (the short test
+  // link, preset=short, and the menu's "Upload test"), never experiment_id.
+  // index.html always uses experiment_id. Keep it on the TEST experiment
+  // when you put the real one in experiment_id; validate.js warns while the
+  // two are the same.
   // -----------------------------------------------------------------------
   datapipe: {
-    experiment_id: 'VoYGtg5yKGr2',  // TEST experiment — replace before data collection
+    experiment_id:      'VoYGtg5yKGr2',  // TEST experiment — replace before data collection
+    test_experiment_id: 'VoYGtg5yKGr2',  // dev.html uploads: keep the TEST experiment
     zenodo_record: '[Zenodo record — to complete]',   // for reference only
   },
 
@@ -222,8 +229,11 @@ var CONFIG = {
   // >>> TEST EXPERIMENT — REPLACE BEFORE DATA COLLECTION (see datapipe,
   // above, and README.md). <<<
   // -----------------------------------------------------------------------
+  // test_experiment_id: where dev.html sends the contact file, as for the
+  // responses above.
   contact_datapipe: {
-    experiment_id: 'T8mzFmXrMcjw',  // TEST experiment — replace before data collection
+    experiment_id:      'T8mzFmXrMcjw',  // TEST experiment — replace before data collection
+    test_experiment_id: 'T8mzFmXrMcjw',  // dev.html uploads: keep the TEST experiment
     zenodo_record: '[Zenodo record — to complete]',   // for reference only
   },
 
@@ -473,9 +483,16 @@ var CONFIG = {
   // so it is never part of the recorded `stimulus` HTML or any other column.
   // It is shown only when dev.html is running (window.DEV_MODE), whatever
   // this says, and validate.js refuses to start index.html with it true.
+  //
+  // rest_skippable and show_save_status are set by the short test link
+  // (dev.html?code=<test code>&preset=short&n=N): the rest screen shows its
+  // Continue button at once (rest_skipped = true is recorded), and the
+  // final screen always shows the saving-status box. Leave them false here.
   // -----------------------------------------------------------------------
   dev: {
-    trial_label: false,
+    trial_label:      false,
+    rest_skippable:   false,
+    show_save_status: false,
   },
 
   // -----------------------------------------------------------------------
@@ -489,10 +506,15 @@ var CONFIG = {
   // trials. Limits are ignored outside dev.html, and validate.js refuses to
   // start index.html while either is set. A shortened session is stamped
   // is_dev = true, shortened = true and shortened_to = N on every row.
+  //
+  // ensure_catch (set by the short test link): when max_trials cuts a block
+  // before its first catch trial, that catch trial is added as one extra
+  // trial right after the last kept one (short_catch_added_b<p> = true).
   // -----------------------------------------------------------------------
   limits: {
     max_trials:   0,   // 0 = all 200 main trials per block
     max_practice: 0,   // 0 = all practice trials (design.json)
+    ensure_catch: false,
   },
 
   // -----------------------------------------------------------------------

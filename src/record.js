@@ -365,11 +365,18 @@ var Record = (function () {
   //     e.g. participant_R_9rJJWk01c767jE8_v5c_180_2026-11-30T14-12-40.csv
   // (Pavlovia adds its own parts around this: see the save node in main.js.)
   // -----------------------------------------------------------------------
+  //
+  // dev.html sessions start with dev_ (on every platform, and inside the
+  // name Pavlovia builds), so they stand out without opening them:
+  //     dev_participant_Z_21121989_v5c_180_2026-11-30T14-12-40.csv
   function sessionFilename(participantId) {
     var set = Loader.stimulusSet();
-    return (Loader.group() || 'nogroup') + '_' + participantId + '_' + set + '_' +
+    return devPrefix() + (Loader.group() || 'nogroup') + '_' + participantId + '_' + set + '_' +
            sessionStamp() + '.csv';
   }
+
+  // 'dev_' on dev.html, '' on index.html: the start of every file name.
+  function devPrefix() { return window.DEV_MODE ? 'dev_' : ''; }
 
   // The name the response file is saved under. A session resumed AT the
   // saving step (an upload may already have gone through) adds
@@ -414,6 +421,7 @@ var Record = (function () {
     markBlockEnd:      markBlockEnd,
     markRest:          markRest,
     sessionFilename:   sessionFilename,
+    devPrefix:         devPrefix,
     dataFilename:      dataFilename,
     state:             state,
     restore:           restore,

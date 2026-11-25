@@ -158,6 +158,53 @@ early (consent declined, window too small).
 
 ---
 
+## Leaving full screen
+
+Full screen is requested once, before the brightness screen. From then
+until the responses are being saved, leaving full screen (Esc, or to
+change a system setting) brings up an overlay, *"Please return to full
+screen"*, with a button that returns to it.
+
+- **While the overlay is shown:** keys and clicks do not reach the task
+  underneath. Timers are not paused: a short screen runs out, the next
+  response screen waits, and the rest keeps counting.
+- **If the browser refuses:** the overlay stays and says so. There is no
+  way past it.
+- **When it is never shown:** a browser that never entered full screen is
+  not guarded, so it cannot get stuck. The final screens are exempt.
+- **What is recorded:**
+  - every row shown while out of full screen is flagged with
+    `fullscreen_exit` and `fullscreen_exit_ms`; on an image-pair row, `rt`
+    includes that time;
+  - the session totals are on every row: `fullscreen_exit_count`,
+    `fullscreen_exit_total_ms`, `fullscreen_reentry_failures`, and
+    `fullscreen_exit_log` (JSON).
+
+  See `DATA_DICTIONARY.md` §17.
+
+## Short test links (dev.html)
+
+`dev.html?code=<test code>&lang=ja&preset=short&n=41` runs the whole session
+as a participant sees it, without the developer menu, for checking the
+wording and the upload.
+
+- **The cut:** each block is cut to its first `n` main trials. 41 shows the
+  first break, after trial 40. Practice is complete.
+- **Catch trials:** if the cut comes before a block's first catch trial,
+  that catch trial is added after trial `n`.
+- **The rest:** its Continue is there at once (`rest_skipped`).
+- **On screen:** no trial labels; the saving-status box is always on the
+  final screen.
+- **Uploads:** to the **test** DataPipe experiments, under file names
+  starting `dev_`.
+- **Which codes:** test codes only; a pilot or main code is refused. It can
+  be run any number of times, and a reload resumes. `index.html` ignores
+  `preset` and `n`.
+- **Recorded:** `is_dev`, `is_test`, `shortened` and `shortened_to` on every
+  row.
+- **Building them:** `tools/make_links.py --dev-short 41` (`SETUP.md` §6,
+  "Short test links").
+
 ## Invitation links
 
 Each participant gets their own link, carrying **one code** and, optionally,
@@ -218,11 +265,13 @@ tools/check_package.js          offline check of the package, texts and config (
 tools/test_trial_label.js       browser test of the dev trial label (header says how to run it)
 tools/make_link_codes.py        makes the link codes and the public file (SETUP §6, "Link codes")
 tools/make_links.py             builds the participant links from the private code table
+                                (--dev-short N: the short test links on dev.html)
 tools/test_make_link_codes.py   self-test of make_link_codes.py
 tools/test_make_links.py        self-test of make_links.py
 tools/link_codes_test_vectors.json  test vectors for the link code entries
 tools/test_link_code.js         the browser's code lookup against the test vectors (Node)
 tools/test_link_codes_e2e.js    browser test of the code links (header says how to run it)
+tools/test_dev_short_e2e.js     browser test of the short test link and the full-screen overlay
 data/links/codes.json   the PUBLIC link-code file (one encrypted entry per code; no
                         codes, nothing about people). Added by the researcher after
                         running make_link_codes.py; index.html needs it
@@ -237,6 +286,7 @@ src/
   platform.js           where it runs (GitHub / Pavlovia / local), loads the libraries
   main.js               session order, link gate (invalid / could not be checked), save
   link-code.js          opens a link code against data/links/codes.json (Web Crypto)
+  fullscreen-guard.js   the "Please return to full screen" overlay, and the exit records
   loader.js             the package and the link: ?code= and ?lang= (dev.html: also
                         group, slot, idate, set)
   validate.js           preflight checks against design.json (also run by tools/check_package.js)
@@ -327,7 +377,8 @@ In `config.js`:
 |---|---|
 | `platform` | `'auto'` (default: GitHub Pages → `github`, Pavlovia → `pavlovia`, your computer → `local`), or one of those set explicitly |
 | `libraries` | `'bundled'` (our `vendor/` copy, default) or `'pavlovia'` (Pavlovia's own `lib/vendors/`, only on Pavlovia) |
-| `datapipe.experiment_id`, `contact_datapipe.experiment_id` | **test experiments for now** — replace before data collection (checklist below) |
+| `datapipe.experiment_id`, `contact_datapipe.experiment_id` | where **index.html** uploads: **test experiments for now** — replace before data collection (checklist below) |
+| `datapipe.test_experiment_id`, `contact_datapipe.test_experiment_id` | where **every dev.html upload** goes (the short test link, the menu's "Upload test", the contact file of a dev session): the test experiments, `VoYGtg5yKGr2` and `T8mzFmXrMcjw`. Keep them when you replace `experiment_id`; `validate.js` warns while the two are equal |
 | `participant.contact_storage` | `'auto'` (default: in the response file on Pavlovia, separate DataPipe file elsewhere), `'datapipe'` or `'results_file'` |
 | `debug` | validation report in the console; upload details on the completion screen |
 | `blocks.*` | each step on or off (see the session table). Turning a step off removes it; the order of the steps is fixed in `src/main.js`. `blocks.positions` must stay `[1, 2]` on `index.html` |
@@ -409,7 +460,9 @@ does — DataPipe from GitHub Pages or your computer, Pavlovia on Pavlovia.
       sessions. Create new DataPipe experiments for v5c (responses and
       contact details), connect them to their Zenodo records, switch
       "Enable data collection" on, set the contact one's Required Fields to
-      `participant_id`, and put the new IDs in `config.js`.
+      `participant_id`, and put the new IDs in `config.js`. Leave
+      `test_experiment_id` (both) on the test experiments: `dev.html`
+      uploads, including the short test links, keep going there.
 - [ ] Fill in the two **[GIVEN NAME]** markers in the English consent
       (the researcher list, `CONSENT_BODY_EN` in `text/en/instructions.js`).
       The approved consent text is otherwise in place, in both languages.
@@ -432,7 +485,9 @@ single invitation while any item fails**.
 - [ ] `researcher_contact` is a real address (not `CHANGE_ME@example.com`).
 - [ ] `experiment.version` is the version you record for the study.
 - [ ] `datapipe.experiment_id` and `contact_datapipe.experiment_id` are the
-      **new v5c experiments**, not the test ones (above).
+      **new v5c experiments**, not the test ones (above), and
+      `test_experiment_id` (both) still the test ones: `node
+      tools/check_package.js` no longer warns that they are equal.
 - [ ] `participant.collect_id`, `allow_manual_id`, `collect_name` and
       `collect_email` all true: links carry only a code, so the ID is typed
       (or a name and email given instead). `index.html` refuses otherwise.

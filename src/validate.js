@@ -793,6 +793,8 @@ var Validate = (function () {
        'calibration.brightness_lighting', 'calibration.brightness_checkbox',
        'calibration.lighting_checkbox', 'id.privacy',
        'link.invalid_title', 'link.invalid_body',
+       'screen.return_title', 'screen.return_body', 'screen.return_button',
+       'screen.return_failed',
        'link.unchecked_title', 'link.unchecked_body',
        'episodes.optional_tag', 'episodes.questions_intro',
        'episodes.incomplete'].forEach(function (k) {
@@ -1047,6 +1049,32 @@ var Validate = (function () {
     return { errors: errors, warnings: warnings };
   }
 
+  // =======================================================================
+  // THE TEST DATAPIPE EXPERIMENTS. dev.html always uploads to
+  // datapipe.test_experiment_id and contact_datapipe.test_experiment_id;
+  // index.html to experiment_id. A missing test ID: an error on dev.html
+  // (its uploads would be lost), a warning on index.html. A test ID equal
+  // to the real one: a warning (expected until the real experiments are
+  // filled in, before data collection).
+  // =======================================================================
+  function checkTestTargets(cfg, opts) {
+    var errors = [], warnings = [];
+    opts = opts || {};
+    [['datapipe', 'responses'], ['contact_datapipe', 'contact file']].forEach(function (x) {
+      var d = cfg[x[0]] || {};
+      if (!d.test_experiment_id) {
+        (opts.devMode ? errors : warnings).push('CONFIG.' + x[0] + '.test_experiment_id is ' +
+          'empty: dev.html uploads (' + x[1] + ') go only to the test experiment, so ' +
+          'they would be lost.');
+      } else if (d.experiment_id && d.test_experiment_id === d.experiment_id) {
+        warnings.push('CONFIG.' + x[0] + '.experiment_id is still the test experiment (' +
+          d.experiment_id + '). Put the real DataPipe experiment there before data ' +
+          'collection; keep test_experiment_id as it is.');
+      }
+    });
+    return { errors: errors, warnings: warnings };
+  }
+
   function _isProduction() {
     return !window.DEV_MODE && !CONFIG.debug;
   }
@@ -1107,6 +1135,7 @@ var Validate = (function () {
                   'experiment_id is empty — contact details would be lost.');
     }
     _checkPlatform(P, errors, warnings);
+    add(checkTestTargets(CONFIG, { devMode: !!window.DEV_MODE }));
 
     // --- Summary ---------------------------------------------------------
     // (The practice values throw when design.json lacks them; that is
@@ -1259,6 +1288,7 @@ var Validate = (function () {
     checkText:    checkText,
     checkConfig:  checkConfig,
     checkLinkCodes: checkLinkCodes,
+    checkTestTargets: checkTestTargets,
     checkImageNames: checkImageNames,
   };
 })();

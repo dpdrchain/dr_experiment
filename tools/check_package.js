@@ -105,6 +105,7 @@ try {
 }
 add(Validate.checkLinkCodes(codesInfo, CONFIG.participant, { devMode: false, production: false }),
     'link codes');
+add(Validate.checkTestTargets(CONFIG, { devMode: false }), 'test DataPipe experiments');
 
 // --- Files on disk -------------------------------------------------------------
 const named = new Set();
