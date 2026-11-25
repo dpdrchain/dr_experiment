@@ -115,8 +115,11 @@ var CONFIG = {
   // IDs are CASE-SENSITIVE: R_4EWNe48BIB50mVI and R_4ewne48bib50mvi are
   // different identifiers. Whitespace is stripped; case is not touched.
   //
-  // All three are asked on ONE screen at the start. If the invitation link
-  // carries ?pid=, the ID field is filled in already.
+  // All three are asked on ONE screen at the start. index.html links carry
+  // only a code (?code=), never the ID, so every participant types it (the
+  // "no ID in the link" case below); validate.js refuses index.html unless
+  // collect_id, allow_manual_id, collect_name and collect_email are all on.
+  // On dev.html ?pid= still fills the ID field in.
   //
   // The three fields can each be switched off independently:
   //
@@ -144,8 +147,8 @@ var CONFIG = {
   // tested quickly. Test sessions are flagged is_test / is_dev inside that
   // file too.
   //
-  // NO ID IN THE LINK (allow_manual_id: true, name and email both
-  // collected). The participant must give EITHER a valid participant ID
+  // NO ID IN THE LINK (every index.html session; allow_manual_id: true,
+  // name and email both collected). The participant must give EITHER a valid participant ID
   // OR both a name and a valid email address — giving all three is best,
   // and the screen says so. An ID that is typed but does not match
   // id_pattern still blocks Continue (a mistyped ID would point to the
@@ -158,22 +161,29 @@ var CONFIG = {
   // (recorded as contact_saved). id_source = 'no_id'. These are real
   // sessions, not tests: is_test stays false.
   //
-  // With a valid ?pid= in the link nothing changes: the ID is filled in,
-  // and name and email are optional.
+  // dev.html with a valid ?pid=: the ID is filled in, and name and email
+  // are optional.
+  //
+  // COMPLETION CHECK ON THE TYPED ID (index.html, a second safeguard after
+  // the check of the link itself): an ID that has completed the study in
+  // this browser sees only the completion message, except the
+  // superuser_ids and any session started with a test code.
   // -----------------------------------------------------------------------
   participant: {
     id_pattern:        '^R_[A-Za-z0-9]{15}$',
     no_id_prefix:      'NOID_DRCHAIN26',
 
     // Test IDs. Accepted in place of a real ID, and every row of a session
-    // using one is flagged is_test = true. Add more as needed.
+    // using one is flagged is_test = true (as is every session started with
+    // a test code). Never blocked by the completion check on the typed ID.
+    // Add more as needed.
     //   Z_21121989  — your own testing
     //   CHAIN_2026  — for colleagues. Several people may share it; their
     //                 files are still separate (the filename has a
     //                 timestamp), and the optional name field tells them apart.
     superuser_ids:     ['Z_21121989', 'CHAIN_2026'],
 
-    allow_manual_id:   true,   // false = URL parameter only
+    allow_manual_id:   true,   // must stay true: index.html links carry no ID
     collect_id:        true,
     collect_name:      true,
     collect_email:     true,
@@ -347,15 +357,23 @@ var CONFIG = {
   // `v5b_180` (the earlier package, 6 + 3 practice) is still in data/sets/
   // but no longer used; it will be removed in a separate change.
   //
-  // `set` is the default; ?set=<name> overrides it, but only names in
-  // available_sets are accepted. Stamped on every row as `stimulus_set` and
-  // in the uploaded filename. (The set A/B a block uses is a different
-  // thing: it is recorded per row as `set`.)
+  // `set` is the default; on dev.html ?set=<name> overrides it, but only
+  // names in available_sets are accepted (index.html ignores ?set=).
+  // Stamped on every row as `stimulus_set` and in the uploaded filename.
+  // (The set A/B a block uses is a different thing: it is recorded per row
+  // as `set`.)
+  //
+  // `link_codes_file`: the PUBLIC link-code file made by
+  // tools/make_link_codes.py (SETUP.md, "Link codes"). index.html opens the
+  // link's ?code= against it to get the link_id, phase, group and slot.
+  // Without it, index.html cannot start a session (validate.js warns in
+  // debug mode and refuses a production session).
   // -----------------------------------------------------------------------
   data: {
-    set:            'v5c_180',
-    available_sets: ['v5c_180'],
-    sets_dir:       'data/sets/',
+    set:             'v5c_180',
+    available_sets:  ['v5c_180'],
+    sets_dir:        'data/sets/',
+    link_codes_file: 'data/links/codes.json',
   },
 
   // -----------------------------------------------------------------------

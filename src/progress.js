@@ -13,9 +13,10 @@
  * THE SESSION KEY
  * ---------------
  * mode (index / dev) | experiment name | experiment version | package |
- * group | slot | participant ID from the link (empty when the ID was
- * typed). A link opened with other values starts normally. A link without
- * an ID finds the record by the other values and takes the ID from it.
+ * group | slot | the link: on index.html the link_id from the link's code;
+ * on dev.html the link_id when a ?code= is given, else the participant ID
+ * from ?pid= (empty when the ID is typed). A link opened with other values
+ * starts normally; the typed ID is restored from the stored progress.
  *
  * WHAT IS STORED (all under the session key)
  *   |r|<n>   each data row, as it is written (session-level columns are
@@ -44,9 +45,18 @@
  * normally without resuming; resume_available = false is recorded, and a
  * failure during the session is stamped as resume_storage_error.
  *
- * COMPLETION RECORD: dpdr.completed|<experiment name>|<participant ID>,
- * written when the final screen appears (saved, or the failure screen).
- * index.html then shows only the completion message for that ID.
+ * COMPLETION RECORDS, written when the final screen appears (saved, or the
+ * failure screen):
+ *   dpdr.completed|<experiment name>|link|<link_id>   the link
+ *   dpdr.completed|<experiment name>|id|<participant ID>   the typed ID
+ * index.html then shows only the completion message (main.js,
+ * participant-id.js):
+ *   - for a link that has been completed, except a test code (testers can
+ *     run their link again);
+ *   - for a typed ID that has completed, except the superuser IDs and any
+ *     session started with a test code (the second safeguard).
+ * A session started with a test code writes no completion record, and a
+ * superuser ID no ID record, so neither can block a later session.
  * ========================================================================= */
 
 var Progress = (function () {
@@ -154,10 +164,11 @@ var Progress = (function () {
   // The session key.
   // -----------------------------------------------------------------------
   function sessionKey(pidFromLink) {
+    var link = Loader.linkId();
     return [window.DEV_MODE ? 'dev' : 'index',
             CONFIG.experiment.name, CONFIG.experiment.version,
             Loader.stimulusSet(), Loader.group(), Loader.slot(),
-            pidFromLink || ''].join('|');
+            link ? 'link:' + link : (pidFromLink || '')].join('|');
   }
 
   // Look for an unfinished session for this link. Returns the stored
@@ -467,25 +478,37 @@ var Progress = (function () {
   // -----------------------------------------------------------------------
   // Completion records.
   // -----------------------------------------------------------------------
-  function _doneKey(pid) { return DONE_PREFIX + CONFIG.experiment.name + '|' + pid; }
+  function _doneKey(kind, value) {
+    return DONE_PREFIX + CONFIG.experiment.name + '|' + kind + '|' + value;
+  }
 
-  function isCompleted(pid) {
+  // Has this link (link_id) been completed in this browser?
+  function isLinkCompleted(linkId) {
+    if (!linkId || !available()) return false;
+    return !!_get(_doneKey('link', linkId));
+  }
+
+  // Has this participant ID been completed in this browser?
+  function isIdCompleted(pid) {
     if (!pid || !available()) return false;
-    return !!_get(_doneKey(pid));
+    return !!_get(_doneKey('id', pid));
   }
 
   // The final screen appeared: delete the stored progress, store the
-  // completion record (when there is a participant ID), switch the dialog
-  // off.
-  function complete(pid, outcome) {
+  // completion records, switch the dialog off.
+  //   who = { linkId, linkPhase, pid, superuser }
+  // A test code writes no record at all, and a superuser ID no ID record,
+  // so neither can block a later session.
+  function complete(who, outcome) {
     guard(false);
     if (_key) clear(_key);
-    if (pid && available()) {
+    who = who || {};
+    var rec = JSON.stringify({ at: new Date().toISOString(), outcome: outcome || null,
+                               dev: !!window.DEV_MODE });
+    if (available() && who.linkPhase !== 'test') {
       try {
-        _ls().setItem(_doneKey(pid), JSON.stringify({
-          at: new Date().toISOString(), outcome: outcome || null,
-          dev: !!window.DEV_MODE,
-        }));
+        if (who.linkId) _ls().setItem(_doneKey('link', who.linkId), rec);
+        if (who.pid && !who.superuser) _ls().setItem(_doneKey('id', who.pid), rec);
       } catch (e) { /* nothing more to do */ }
     }
     _key = null;
@@ -536,7 +559,8 @@ var Progress = (function () {
     contactSavedBefore: contactSavedBefore,
     guard:              guard,
     guardOn:            guardOn,
-    isCompleted:        isCompleted,
+    isLinkCompleted:    isLinkCompleted,
+    isIdCompleted:      isIdCompleted,
     complete:           complete,
     abandon:            abandon,
     listAll:            listAll,

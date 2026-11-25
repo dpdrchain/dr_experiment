@@ -18,7 +18,12 @@
  *   - every file in stimuli/ is shown by a list or practice row or belongs
  *     to a catch row (warning otherwise);
  *   - items.csv has design.json's items.rows rows, unique item_ids, and
- *     every item_id of every list and practice row.
+ *     every item_id of every list and practice row;
+ *   - the public link-code file (CONFIG.data.link_codes_file,
+ *     data/links/codes.json) is there and well formed (validate.js
+ *     checkLinkCodes, as for a debug session: a warning when it is
+ *     missing). Its entries cannot be opened without the codes; use
+ *     tools/make_link_codes.py --verify for that.
  *
  * It prints the image count: shown (= preload.json) + catch-only = total,
  * and the number of scenes.
@@ -44,8 +49,8 @@ function load(rel) {
 // `var` declarations become properties of the context.
 load('config.js');
 ['text/en/instructions.js', 'text/ja/instructions.js',
- 'text/en/words.js', 'text/ja/words.js', 'src/validate.js'].forEach(load);
-const { CONFIG, Validate } = ctx;
+ 'text/en/words.js', 'text/ja/words.js', 'src/link-code.js', 'src/validate.js'].forEach(load);
+const { CONFIG, Validate, LinkCode } = ctx;
 
 const setName = process.argv[2] || CONFIG.data.set;
 const DIR = path.join(ROOT, CONFIG.data.sets_dir, setName);
@@ -86,6 +91,20 @@ add(Validate.checkText({
 }, CONFIG, pkg.design, { production: false, contactStorage: 'datapipe' }), 'text');
 add(Validate.checkConfig(CONFIG, pkg, { devMode: false }), 'config');
 add(Validate.checkImageNames(pkg), 'image names');   // dev check (the trial label)
+
+// --- The public link-code file ---------------------------------------------------
+const codesRel = (CONFIG.data && CONFIG.data.link_codes_file) || 'data/links/codes.json';
+const codesInfo = { path: codesRel, loaded: false, error: '', problems: [], count: 0 };
+try {
+  const pub = JSON.parse(fs.readFileSync(path.join(ROOT, codesRel), 'utf8'));
+  codesInfo.loaded = true;
+  codesInfo.problems = LinkCode.checkFile(pub);
+  codesInfo.count = (pub && pub.codes) ? Object.keys(pub.codes).length : 0;
+} catch (e) {
+  codesInfo.error = e.code === 'ENOENT' ? 'not found' : e.message;
+}
+add(Validate.checkLinkCodes(codesInfo, CONFIG.participant, { devMode: false, production: false }),
+    'link codes');
 
 // --- Files on disk -------------------------------------------------------------
 const named = new Set();
@@ -181,6 +200,8 @@ console.log('Images: ' + shown.size + ' shown (preload.json: ' + pkg.preload.len
             catchOnly.size + ' only on catch rows = ' + (shown.size + catchOnly.size) +
             '; ' + onDisk.length + ' files in stimuli/, checked against manifest.csv; ' +
             scenes.size + ' scenes.');
+console.log('Link codes: ' + (codesInfo.loaded ? codesInfo.count + ' entries in ' + codesRel
+                                              : codesRel + ' ' + codesInfo.error) + '.');
 warnings.forEach((w) => console.log('  WARNING: ' + w));
 errors.forEach((e) => console.log('  ERROR:   ' + e));
 console.log(errors.length ? 'FAIL (' + errors.length + ' error(s))'

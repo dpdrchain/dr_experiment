@@ -92,8 +92,9 @@ sent anywhere until the usual upload at the end.
 
 **Resuming after a reload or a closed tab.** After every screen and trial
 the page stores its progress and every response. Opening the same link
-again (same participant ID, group, slot, package and experiment version)
-shows a screen saying the study was interrupted, with only **Continue**.
+again (the same code, so the same `link_id`, with the same package and
+experiment version) shows a screen saying the study was interrupted, with
+only **Continue**.
 Continuing needs full screen again (and passes the window check again) and
 waits for the images, as at the start. Where it continues:
 
@@ -127,14 +128,26 @@ loses the progress.
 
 **Completion check.** When the final screen appears (saved, or the
 upload-failure screen with its download button), the stored progress is
-deleted and the browser records that this participant ID has completed the
-study (for this experiment name). Opening the link again in that browser
-shows only: *"You have already completed this study. Thank you for your
-participation."* A typed ID is checked straight after the ID screen,
-before anything is uploaded. **Sessions without a participant ID (name and
-email only) cannot be recognised**, and neither can a participant who opens
-the link in another browser or on another device. The check also applies
-to the test IDs; clear it from `dev.html` (below).
+deleted and the browser records, for this experiment name, that the link
+(its `link_id`) and the typed participant ID have completed the study.
+Then, in that browser, only this is shown: *"You have already completed
+this study. Thank you for your participation."* Two rules:
+
+- **The link:** a link that has been completed shows only that message when
+  it is opened again, **except a test code** (`link_phase` `test`): testers
+  can run their link as often as they like. Resuming after a reload still
+  works for test codes.
+- **The typed ID (a second safeguard):** a participant ID that has completed
+  in this browser shows only that message straight after the ID screen,
+  before anything is uploaded, even on another link, **except the superuser
+  IDs** (`Z_21121989`, `CHAIN_2026`) **and any session started with a test
+  code**.
+
+A test-code session writes no completion record, and a superuser ID no ID
+record, so neither can block a later session. Sessions without a
+participant ID (name and email only) are recognised by their link only,
+and a participant who opens the link in another browser or on another
+device is not recognised at all. Clear the records from `dev.html` (below).
 
 **"Leave this page?"** From the consent screen until the final screen,
 reloading or closing the tab triggers the browser's own dialog (its wording
@@ -147,49 +160,44 @@ early (consent declined, window too small).
 
 ## Invitation links
 
-Each participant gets their own link. All parameters are read in the
-browser and never reach the server.
+Each participant gets their own link, carrying **one code** and, optionally,
+the language. Nothing else:
 
 ```
-https://<username>.github.io/<repo-name>/?pid=<ID>&group=<group>&slot=<n>&idate=<YYYY-MM-DD>
-https://run.pavlovia.org/<user>/<project>/?pid=<ID>&group=<group>&slot=<n>&idate=<YYYY-MM-DD>
+https://<username>.github.io/<repo-name>/?code=<code>
+https://<username>.github.io/<repo-name>/?code=<code>&lang=ja
+https://run.pavlovia.org/<user>/<project>/?code=<code>&lang=ja
 ```
-
-The same parameters on both.
 
 | parameter | required | values | notes |
 |---|---|---|---|
-| `pid` | yes* | `R_` + 15 letters/digits, case-sensitive | *if missing (and `participant.allow_manual_id` is true), the participant must type a valid ID **or** give both a name and an email address — see "Participant IDs" |
-| `group` | **yes** | `participant` or `control` (exact, lower case) | missing or misspelt → the study does not start and shows "This link is incomplete" |
-| `slot` | **yes** | a whole number, 1 or more (digits only) | slot n uses row ((n − 1) mod 64) + 1 of the group's table in `assignment.json`. **Hand slots out in sequence per group, starting at 1, and never reuse one**: every 64 slots each of the 16 cells (block order × set mapping × order) is used equally often. Missing, `0`, negative, not a whole number → "This link is incomplete" |
-| `idate` | no | `YYYY-MM-DD`, a real date | the interview date, added by the researcher who schedules the interviews. Never asked on screen. Invalid → recorded empty |
+| `code` | **yes** | 12 characters from `ABCDEFGHJKMNPQRSTUVWXYZ23456789`; any case, surrounding spaces ignored | made by `tools/make_link_codes.py`. The page opens it against the public file `data/links/codes.json` (with the browser's Web Crypto) and gets the `link_id`, the phase (`test`, `pilot`, `main`), the group and the slot. Participants cannot change their condition by editing the link, and the link does not show their group |
 | `lang` | no | `en` (default) or `ja` | |
 
-Examples:
+- **Other parameters are ignored.** `index.html` ignores `pid`, `group`,
+  `slot`, `idate` and `set`, and none of them is recorded. The participant
+  types their ID on the ID screen.
+- **The group and slot** from the code are used exactly as before: slot n
+  uses row ((n − 1) mod 64) + 1 of the group's table in `assignment.json`.
+  Slots are numbered from 1 within each phase and group.
+- **Invalid link.** A missing, unknown, malformed or edited code shows
+  *"Invalid link: This link is not valid. Please open the link from your
+  invitation email exactly as it was sent. If it still does not work,
+  please contact the researcher."* The session does not start, and nothing
+  is recorded.
+- **The link could not be checked.** If `data/links/codes.json` cannot be
+  loaded, or the browser lacks Web Crypto, the page shows *"The link could
+  not be checked"* instead. That is not the participant's fault, so the two
+  problems can be told apart.
+- **`dev.html`** keeps the old parameters (`pid`, `group`, `slot`, `idate`,
+  `set`) for quick tests, and also accepts `?code=`, which wins if both are
+  given. Every `dev.html` session is `is_dev = true`.
 
-```
-.../?pid=R_9rJJWk01c767jE8&group=participant&slot=1&idate=2026-11-03
-.../?pid=R_4EWNe48BIB50mVI&group=control&slot=1&lang=ja
-```
-
-Building them from a table (Python), keeping one slot counter per group:
-
-```python
-from urllib.parse import urlencode
-BASE = 'https://<username>.github.io/<repo-name>/'
-next_slot = {'participant': 1, 'control': 1}     # persist this between batches
-def link(pid, group, idate=None, lang=None):
-    assert group in ('participant', 'control')
-    slot = next_slot[group]; next_slot[group] += 1
-    q = {'pid': pid, 'group': group, 'slot': slot}
-    if idate: q['idate'] = idate          # 'YYYY-MM-DD'
-    if lang:  q['lang']  = lang
-    return BASE + '?' + urlencode(q)
-```
-
-Record which slot went to whom: the slot is also in the data (`slot`,
-`assignment_row`), but a slot sent and never used is only in your own
-record.
+The links are built from the private code table by `tools/make_links.py`
+(`SETUP.md` §6, "Link codes", gives the exact commands). The table holds,
+for each code, the `pid`, `idate` and `tester` you fill in. `link_id` (for
+example `main_participant_017`) is in the data, so sessions join to the
+table without the code.
 
 See `SETUP.md` §6 for what to put in the invitation email.
 
@@ -208,9 +216,16 @@ jspsych-7-pavlovia-2021.12.js   the Pavlovia plugin (loaded only on Pavlovia)
 tools/sync_to_pavlovia.sh       copy a commit into the Pavlovia clone (SETUP §7)
 tools/check_package.js          offline check of the package, texts and config (SETUP §5)
 tools/test_trial_label.js       browser test of the dev trial label (header says how to run it)
-tools/make_link_codes.py        makes the opaque link codes (SETUP §6, "Link codes"; not used yet)
-tools/test_make_link_codes.py   its self-test
+tools/make_link_codes.py        makes the link codes and the public file (SETUP §6, "Link codes")
+tools/make_links.py             builds the participant links from the private code table
+tools/test_make_link_codes.py   self-test of make_link_codes.py
+tools/test_make_links.py        self-test of make_links.py
 tools/link_codes_test_vectors.json  test vectors for the link code entries
+tools/test_link_code.js         the browser's code lookup against the test vectors (Node)
+tools/test_link_codes_e2e.js    browser test of the code links (header says how to run it)
+data/links/codes.json   the PUBLIC link-code file (one encrypted entry per code; no
+                        codes, nothing about people). Added by the researcher after
+                        running make_link_codes.py; index.html needs it
 data/sets/v5c_180/      FROZEN package in use: README.txt, design.json, assignment.json,
                         lists/ (8 lists of 200), practice/ (block1, block2: 3 each),
                         items.csv (406 items), preload.json (617 paths), manifest.csv,
@@ -220,12 +235,15 @@ text/en/, text/ja/      every participant-facing string; words.js = the word lis
 text/ja/STRINGS_TO_CHECK.md   Japanese drafts for a native speaker to check
 src/
   platform.js           where it runs (GitHub / Pavlovia / local), loads the libraries
-  main.js               session order, group and slot gate, save
-  loader.js             the package and the link parameters (group, slot, idate, lang, set)
+  main.js               session order, link gate (invalid / could not be checked), save
+  link-code.js          opens a link code against data/links/codes.json (Web Crypto)
+  loader.js             the package and the link: ?code= and ?lang= (dev.html: also
+                        group, slot, idate, set)
   validate.js           preflight checks against design.json (also run by tools/check_package.js)
   record.js             session-level stamps and trial rows
   progress.js           progress in the browser: resuming, completion check, reload dialog
-  participant-id.js     ?pid= with typed fallback; contact upload or results-file columns
+  participant-id.js     the typed ID (dev.html: ?pid=), name/email instead; contact
+                        upload or results-file columns; the typed-ID completion check
   calibration/          screen-check (full screen + window stop), brightness, gamma
   phases/               consent, episodes (selection + reinstatement), pairs (one
                         block), rest, words, cds, rating-grid (0–6 grid for the words)
@@ -241,11 +259,14 @@ package's checksums when it was committed (`SETUP.md` §5 for the check).
 Never edit, add, remove, re-encode, resize or rename anything in it, or in
 `data/sets/v5b_180/`.
 
-**File names match within a session.** The response file
-(`<ID>_v5c_180_<stamp>.csv`) and the contact file (`contact_<ID>_<stamp>.csv`)
-carry the same stamp: the session start in Japan time. On Pavlovia the
-file is `<project>_<ID>_v5c_180_<stamp>_SESSION_<date>.csv` (Pavlovia adds the
-outer parts) and there is no contact file. Times inside the
+**File names start with the group and match within a session.** The
+response file (`<group>_<ID>_v5c_180_<stamp>.csv`) and the contact file
+(`<group>_contact_<ID>_<stamp>.csv`) carry the same stamp: the session start
+in Japan time. On Pavlovia, Pavlovia builds the name itself:
+`<project>_<group>_<ID>_v5c_180_<stamp>_SESSION_<YYYY-MM-DD_HHhMM.SS.mmm>.csv`.
+It puts its project name before ours, so the group comes second, and adds
+`_SESSION_` and the participant's local time. There is no contact file
+there. Times inside the
 files are UTC; `session_duration_s` and `task_duration_s` give the length
 of the session and of the image task (see `DATA_DICTIONARY.md` §1, §5).
 
@@ -273,25 +294,28 @@ That is why the window check stops, rather than warns, when they do not fit.
 ## Participant IDs
 
 Format `R_` followed by 15 alphanumeric characters, **case-sensitive**
-(`participant.id_pattern`). Normally arrives as `?pid=...` in the URL. The
-ID is only checked against that format — it is not looked up anywhere.
+(`participant.id_pattern`). The ID is only checked against that format — it
+is not looked up anywhere.
 
-**A link without a valid `pid`** (with `participant.allow_manual_id: true`)
-still starts. The ID screen then asks for the ID, name and email, says
-that all three is best, and will not continue unless the participant gives
-**either** a valid ID **or** both a name and a valid email address. An ID
-that is typed but does not match the format always blocks Continue (it
-would point to the wrong person).
+**The ID is typed.** Links carry only a code, never the ID, so every
+participant sees the same ID screen: it asks for the ID, name and email,
+says that all three is best, and will not continue unless the participant
+gives **either** a valid ID **or** both a name and a valid email address.
+Send the ID in the invitation email together with the link. An ID that is
+typed but does not match the format always blocks Continue (it would point
+to the wrong person). `validate.js` refuses `index.html` unless
+`collect_id`, `allow_manual_id`, `collect_name` and `collect_email` are all
+on. (`dev.html` still fills the ID in from `?pid=`.)
 
 A participant who gives a name and email but no ID gets a unique session
 ID, `NOID_DRCHAIN26_` + 8 random characters (prefix:
 `participant.no_id_prefix`). It appears in both the response file and the
 contact file, so the two still link — but then the contact file is the
-only link to the person. With `allow_manual_id: false`, a link without a
-`pid` does not start at all.
+only link to the person.
 
 `Z_21121989` (yours) and `CHAIN_2026` (colleagues) are test IDs. Sessions
-using them are flagged `is_test = true` on every row.
+using them are flagged `is_test = true` on every row, and so are sessions
+started with a **test code** (`link_phase` `test`), whatever ID is typed.
 
 ---
 
@@ -361,9 +385,11 @@ study: an unfinished dev session for the current link can be **resumed**
 (with the dev settings it was started with), and one button **clears all
 stored progress and completion records**. dev.html and index.html share the
 browser's storage (same address), so this also clears what index.html runs
-left, for example the completion record of a test ID. A preset starts a
+left, for example the completion record of a link or an ID. A preset starts a
 new session for the link, replacing its stored progress. dev.html never
-applies the completion check.
+applies the completion check. The menu also shows the link code, when
+`?code=` is given (its `link_id` and phase, or why it is invalid), and
+whether `data/links/codes.json` loaded.
 
 Every dev session is stamped `is_dev = true`; shortened ones also
 `shortened = true`, `shortened_to = N`. Shortening exists only here: the
@@ -389,8 +415,11 @@ does — DataPipe from GitHub Pages or your computer, Pavlovia on Pavlovia.
       The approved consent text is otherwise in place, in both languages.
 - [ ] Check in the pilot that a session takes about 30 minutes, as the
       approved consent text says.
-- [ ] Decide how slots are handed out and recorded (one counter per group,
-      starting at 1, never reused).
+- [ ] Make the link codes and commit the public file as
+      `data/links/codes.json` (`SETUP.md` §6, "Link codes"); build the links
+      with `tools/make_links.py`. Hand the codes of each phase and group out
+      in slot order, starting at 1, never reusing one, and record in the
+      private table who got which (`pid`, `idate`, `tester`, `sent_date`).
 
 ## Launch checklist — do not recruit unless every item passes
 
@@ -404,9 +433,9 @@ single invitation while any item fails**.
 - [ ] `experiment.version` is the version you record for the study.
 - [ ] `datapipe.experiment_id` and `contact_datapipe.experiment_id` are the
       **new v5c experiments**, not the test ones (above).
-- [ ] `participant.allow_manual_id` decided (true = without a `pid` in the
-      link, a typed ID or a name and email are accepted; false = the link's
-      `pid` only).
+- [ ] `participant.collect_id`, `allow_manual_id`, `collect_name` and
+      `collect_email` all true: links carry only a code, so the ID is typed
+      (or a name and email given instead). `index.html` refuses otherwise.
 - [ ] `blocks.consent: true`. (`index.html` refuses to start with it off, but
       check anyway.)
 - [ ] Every block switched on: `consent`, `episodes`, `practice`, `main`,
@@ -442,6 +471,11 @@ single invitation while any item fails**.
 - [ ] Both **Zenodo records restricted** as your ethics approval requires:
       `[Zenodo record — to complete]` (responses) and `[Zenodo record — to
       complete]` (contact details).
+- [ ] `data/links/codes.json` is the public file made from your private
+      table: `python3 tools/make_link_codes.py ... --public-out
+      data/links/codes.json --verify` passes (`SETUP.md` §6). Without it
+      `index.html` (debug off) refuses to start and participants see "The
+      link could not be checked".
 - [ ] Pavlovia: the project is **Private**, **Save incomplete results OFF**,
       credits or a licence assigned, status **Running** (not Piloting), and
       folder B (the Pavlovia clone) is separate from this repository
@@ -455,21 +489,30 @@ single invitation while any item fails**.
 - [ ] The **exact deployed commit hash and `experiment.version` recorded**
       (e.g. in the study log), with the date deployed.
 - [ ] **One complete test session per group** run on the deployed site
-      (`group=participant` and `group=control`, a test ID, any slot), and
+      (a test code of each group, a test ID), and
       each CSV checked against `DATA_DICTIONARY.md` §13: 406 `pairs` rows
       (203 per block), 360 analysed main rows, 4 breaks and 3 practice
       feedback screens per block, the `rest`, `word_ratings` and `cds`
-      rows, and `group`, `slot`, `assignment_row`, `b1_*`/`b2_*`,
-      `ep_*_words`, `catch_fail_*`, `consent_given`, `interview_date`,
-      `rating_foggy`, `rating_faded` on every row.
-- [ ] The no-ID path tested on the deployed site: a link without `pid`,
-      name and email given, no ID — the response file has a `NOID_…`
+      rows, and `link_id`, `link_phase`, `group`, `slot`, `assignment_row`,
+      `b1_*`/`b2_*`, `ep_*_words`, `catch_fail_*`, `consent_given`,
+      `interview_date` (empty), `rating_foggy`, `rating_faded` on every
+      row; `is_test` true (a test code); the file name starts with the
+      group.
+- [ ] One **main** and one **pilot** link of each group opened on the
+      deployed site (not completed), to check that each starts at the
+      consent screen, and one code with a character changed shows "Invalid
+      link".
+- [ ] The no-ID path tested on the deployed site: a test code, name and
+      email given, no ID — the response file has a `NOID_…`
       `participant_id` and the **contact file with the same ID arrived** on
       the contact component. During recruitment, check `contact_saved` on
       every `NOID_…` session: without the contact file it cannot be linked.
       On Pavlovia instead: the response file in the project's `data/`
       folder has `contact_name` and `contact_email` on its
       `participant_id` row, and nothing was sent to DataPipe.
-- [ ] The test IDs (`Z_21121989`, `CHAIN_2026`) — and every `is_dev` or
+- [ ] The test IDs (`Z_21121989`, `CHAIN_2026`), every test code
+      (`link_phase` `test`, `is_test` true) — and every `is_dev` or
       `shortened` session — **excluded at analysis**; their test files
       deleted or ignored.
+- [ ] `interview_date` added to the data afterwards from the private table
+      (`link_id` → `idate`): `index.html` records it empty.

@@ -15,8 +15,10 @@
  * a shortened one also `shortened = true` and `shortened_to = N`, so a
  * test session can never be mistaken for data even if it uploads.
  *
- * GROUP AND SLOT come from ?group= and ?slot= exactly as on index.html;
- * the chips below set them. Until both are valid the presets are
+ * GROUP AND SLOT come from ?group= and ?slot= (index.html no longer
+ * accepts them; its links carry a code), which the chips below set, or
+ * from a link code, ?code=, opened as on index.html. When both are given,
+ * the code wins. Until the group and slot are valid the presets are
  * disabled. The slot decides the episode order, the lists and the practice
  * files (assignment.json), shown in the table.
  *
@@ -287,6 +289,26 @@ var DevMenu = (function () {
             (summary.practice_feedback_trials || ['?', '?']).join(' / ') +
             ' trials (design.json)</td></tr>';
     html += '<tr><th>language</th><td><code>' + _esc(summary.language) + '</code></td></tr>';
+    // The link code, when ?code= is given, and the public file.
+    var ls = Loader.linkStatus(), cf = Loader.codesFile();
+    var codeGiven = new URLSearchParams(window.location.search).has('code');
+    html += '<tr><th>link code</th><td>' + (!codeGiven
+              ? '(no <code>?code=</code>: group and slot from the parameters below)'
+              : (ls.status === 'ok'
+                  ? '<code>' + _esc(Loader.linkId()) + '</code>, phase <code>' +
+                    _esc(Loader.linkPhase()) + '</code>' +
+                    (Loader.linkPhase() === 'test' ? ' (test code: is_test = true)' : '') +
+                    ' &mdash; group and slot come from the code (it wins over ' +
+                    '<code>?group=</code> and <code>?slot=</code>). <a href="' +
+                    _link({ code: null }) + '">Remove the code</a>'
+                  : '<b class="dev-missing">' + _esc(ls.status === 'unchecked'
+                      ? 'could not be checked' : 'INVALID') + '</b>: ' + _esc(ls.reason) +
+                    '. <a href="' + _link({ code: null }) + '">Remove the code</a>')) +
+            '<br><span class="dev-preset-note"><code>' + _esc(cf.path) + '</code>: ' +
+            (cf.loaded ? cf.count + ' codes' + (cf.problems.length
+                          ? ', <b class="dev-missing">' + _esc(cf.problems.join('; ')) + '</b>' : '')
+                       : '<b class="dev-missing">not loaded</b> (' + _esc(cf.error) +
+                         '); index.html cannot start sessions') + '</span></td></tr>';
     html += '<tr><th>group</th><td>' + (group ? '<code>' + _esc(group) + '</code>'
               : '<b class="dev-missing">none &mdash; choose one below</b>') + '</td></tr>';
     html += '<tr><th>slot</th><td>' + (slot
@@ -373,9 +395,9 @@ var DevMenu = (function () {
             'on index.html)</label></div>';
 
     if (!ready) {
-      html += '<p class="dev-warning">Choose a group and a slot first. index.html ' +
-              'refuses to start without <code>?group=</code> and a valid ' +
-              '<code>?slot=</code>, and so does this menu.</p>';
+      html += '<p class="dev-warning">Choose a group and a slot first (or give a ' +
+              'valid <code>?code=</code>). This menu refuses to start without ' +
+              'them, as index.html refuses a link without a valid code.</p>';
     }
 
     // --- Presets ---------------------------------------------------------

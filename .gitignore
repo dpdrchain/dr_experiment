@@ -3,3 +3,7 @@
 # this repository; this is the second safeguard.
 link_codes_private.csv
 link_codes_manifest.txt
+
+# Participant links (tools/make_links.py): they hold the codes. The script
+# writes them only outside this repository; this is the second safeguard.
+links_private*.csv

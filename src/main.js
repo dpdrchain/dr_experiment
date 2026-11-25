@@ -1,10 +1,18 @@
 /* =========================================================================
  * main.js — assembles the timeline and runs it.
  *
- * Before anything: the GROUP and the SLOT must come from the link
- * (?group=participant|control and ?slot=<n>). Without a valid group, a
- * valid slot, or an assignment row for them, the session does not start;
- * it shows the "incomplete link" screen and nothing is recorded.
+ * Before anything: the GROUP and the SLOT must come from the link. On
+ * index.html the link carries one code (?code=, plus optionally ?lang=),
+ * opened against data/links/codes.json (loader.js, link-code.js); on
+ * dev.html ?group= and ?slot= work as before, or a ?code=. Without a valid
+ * link the session does not start and nothing is recorded:
+ *   - a missing, unknown, malformed or tampered code (or no group, slot or
+ *     assignment row): the "invalid link" screen;
+ *   - the code could not be checked at all (the public file not loaded, or
+ *     no crypto.subtle): the "link could not be checked" screen, so the
+ *     two problems can be told apart.
+ * Then (index.html) a link that has been completed in this browser shows
+ * only the completion message, except a test code.
  *
  * A session, the same for both groups (each step has its own switch in
  * config.js):
@@ -203,9 +211,12 @@ function _buildSaveNodes() {
     nodes.push({
       type: jsPsychPavlovia,
       command: 'finish',
-      // Pavlovia names the file <project>_<participantId>_SESSION_<date>.csv.
-      // participantId carries the same ID, set and Japan-time stamp as the
-      // DataPipe file name, e.g. R_xxx_v5c_180_2026-11-30T14-12-40.
+      // Pavlovia builds the file name itself (jspsych-7-pavlovia-2021.12.js,
+      // left unchanged):
+      //   <project name>_<participantId>_SESSION_<YYYY-MM-DD_HHhMM.SS.mmm>.csv
+      // with the participant's LOCAL time. participantId is our name without
+      // .csv: <group>_<participant_id>_v5c_180_<Japan-time stamp>, so the
+      // group comes second, after Pavlovia's project name.
       participantId: function () {
         return Record.dataFilename(ParticipantID.get())
                      .replace(/\.csv$/, '');
@@ -316,7 +327,10 @@ function _buildCompletionNode() {
                 Platform.libraries() + '</code></p>';
         html += '<p>Participant: <code>' +
                 (ParticipantID.get() || 'none') + '</code>' +
-                (ParticipantID.isSuperuser() ? ' (test session)' : '') + '</p>';
+                (ParticipantID.isTest() ? ' (test session)' : '') + '</p>' +
+                '<p>Link: <code>' + (Loader.linkId() || 'none (dev.html parameters)') +
+                '</code>' + (Loader.linkPhase() ? ', phase <code>' + Loader.linkPhase() +
+                '</code>' : '') + '</p>';
         if (Platform.contactStorage() === 'results_file') {
           html += '<p>Name/email: kept in the response file ' +
                   '(contact_storage <code>results_file</code>), nothing sent ' +
@@ -370,11 +384,15 @@ function _buildCompletionNode() {
     },
     on_load: function () {
       // The final screen: no more "Leave this page?" dialog; the stored
-      // progress is deleted and this ID is recorded as having completed.
+      // progress is deleted and the link and the typed ID are recorded as
+      // having completed (not for a test code; no ID record for a
+      // superuser ID).
       var platform = Platform.name();
       var failed = (platform !== 'local') &&
                    !(UPLOAD_RESULT.attempted && UPLOAD_RESULT.success);
-      Progress.complete(ParticipantID.get(), failed ? 'failed' : 'saved');
+      Progress.complete({ linkId: Loader.linkId(), linkPhase: Loader.linkPhase(),
+                          pid: ParticipantID.get(), superuser: ParticipantID.isSuperuser() },
+                        failed ? 'failed' : 'saved');
       var btn = document.getElementById('end-download');
       if (!btn) return;
       btn.addEventListener('click', function () {
@@ -388,18 +406,32 @@ function _buildCompletionNode() {
 }
 
 // ---------------------------------------------------------------------------
-// "Incomplete link": no valid ?group= or ?slot=. The same kind of message
-// as a missing participant ID. Nothing is recorded or uploaded.
+// The link screens. Nothing is recorded or uploaded.
+//   'invalid'    "Invalid link": a missing, unknown, malformed or tampered
+//                code (or, on dev.html, no valid group or slot)
+//   'unchecked'  "The link could not be checked": the public file could
+//                not be loaded, or the browser has no crypto.subtle
+// In debug mode a box underneath says why.
 // ---------------------------------------------------------------------------
-function _runIncompleteLink(reason) {
+function _runLinkScreen(kind, reason) {
   var L = Loader.text().link;
-  console.warn('[Main] ' + reason + ' — session not started.');
+  var title = (kind === 'unchecked') ? L.unchecked_title : L.invalid_title;
+  var body  = (kind === 'unchecked') ? L.unchecked_body  : L.invalid_body;
+  console.warn('[Main] link ' + kind + ': ' + reason + ' — session not started.');
+  var debug = '';
+  if (CONFIG.debug) {
+    var f = Loader.codesFile();
+    debug = '<hr><div class="debug-box"><p><b>Debug — not shown to participants</b></p>' +
+            '<p>' + String(reason).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</p>' +
+            '<p>Link-code file <code>' + f.path + '</code>: ' +
+            (f.loaded ? 'loaded, ' + f.count + ' codes' : 'NOT loaded (' + f.error + ')') +
+            '</p></div>';
+  }
   jsPsych.run([{
     type: jsPsychHtmlKeyboardResponse,
-    stimulus: '<div class="card"><h2>' + L.missing_title + '</h2>' +
-              L.missing_body + '</div>',
+    stimulus: '<div class="card"><h2>' + title + '</h2>' + body + debug + '</div>',
     choices: 'NO_KEYS',
-    data: { block: 'link_incomplete' },
+    data: { block: kind === 'unchecked' ? 'link_unchecked' : 'link_invalid' },
   }]);
 }
 
@@ -513,19 +545,27 @@ function runExperiment(opts) {
     }
   }, false);
 
-  // No valid group or slot in the link: do not start.
+  // No valid link: do not start. The code (index.html, or dev.html with
+  // ?code=) first: could not be checked, or invalid. Then the group, the
+  // slot and the assignment row.
+  var ls = Loader.linkStatus();
+  if (ls.status === 'unchecked') { _runLinkScreen('unchecked', ls.reason); return; }
+  if (ls.status === 'invalid')   { _runLinkScreen('invalid', ls.reason); return; }
   if (!Loader.group()) {
-    _runIncompleteLink('?group= is missing or invalid (expected one of ' +
-                       CONFIG.groups.join(', ') + ')');
+    _runLinkScreen('invalid', window.DEV_MODE
+      ? '?group= is missing or invalid (expected one of ' + CONFIG.groups.join(', ') + ')'
+      : 'no group from the link code');
     return;
   }
   if (!Loader.slot()) {
-    _runIncompleteLink('?slot= is missing or not a whole number of 1 or more');
+    _runLinkScreen('invalid', window.DEV_MODE
+      ? '?slot= is missing or not a whole number of 1 or more'
+      : 'no slot from the link code');
     return;
   }
   if (!Loader.assignment()) {
-    _runIncompleteLink('no assignment row for group ' + Loader.group() +
-                       ', slot ' + Loader.slot());
+    _runLinkScreen('invalid', 'no assignment row for group ' + Loader.group() +
+                              ', slot ' + Loader.slot());
     return;
   }
 
@@ -534,17 +574,20 @@ function runExperiment(opts) {
   var shortened = (lim.max_trials > 0 || lim.max_practice > 0);
 
   // --- Completion check and resuming (progress.js) -------------------------
-  // index.html: an ID from the link that has completed the study in this
-  // browser sees only the completion message. (A typed ID is checked on
-  // the ID screen.)
-  var linkPid = ParticipantID.fromURL();
-  if (!window.DEV_MODE && linkPid && Progress.isCompleted(linkPid)) {
-    console.log('[Progress] ' + linkPid + ' has already completed the study.');
+  // index.html: a link that has been completed in this browser sees only
+  // the completion message, except a test code (testers can run their link
+  // again). (A typed ID is checked on the ID screen, the second safeguard.)
+  var linkPid = ParticipantID.fromURL();          // dev.html only
+  var linkId = Loader.linkId();
+  if (!window.DEV_MODE && linkId && Loader.linkPhase() !== 'test' &&
+      Progress.isLinkCompleted(linkId)) {
+    console.log('[Progress] link ' + linkId + ' has already been completed.');
     jsPsych.run([_completedScreen()]);
     return;
   }
 
-  // An unfinished session for this link? index.html resumes it; dev.html
+  // An unfinished session for this link (index.html: keyed to the
+  // link_id)? index.html resumes it; dev.html
   // only when its menu says so (opts.resume).
   var key = Progress.sessionKey(linkPid);
   var stored = (window.DEV_MODE && !(opts && opts.resume)) ? null : Progress.find(key);
@@ -611,7 +654,7 @@ function runExperiment(opts) {
     type: jsPsychCallFunction,
     func: function () {
       Record.stampParticipant(jsPsych, ParticipantID.get(),
-                              ParticipantID.isSuperuser());
+                              ParticipantID.isTest());
     },
   }], 'id');
 
@@ -753,6 +796,18 @@ Loader.loadAll()
   .then(function (data) {
     var result = Validate.run(data);
     if (CONFIG.debug) Validate.report(result);
+
+    // index.html: a link that could not be checked, or is invalid, gets
+    // its own screen (in the participant's language), before anything
+    // else. Without the public file a production session also fails
+    // validation; the participant still sees "could not be checked".
+    if (!window.DEV_MODE) {
+      var ls = Loader.linkStatus();
+      if (ls.status === 'unchecked' || ls.status === 'invalid') {
+        _runLinkScreen(ls.status, ls.reason);
+        return;
+      }
+    }
 
     if (!result.ok) {
       if (CONFIG.debug) {
