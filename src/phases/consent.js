@@ -1,10 +1,18 @@
 /* =========================================================================
  * phases/consent.js — the consent screen, the FIRST screen of a session.
  *
- * Layout: the consent text, ONE checkbox, and two buttons:
- *   "I agree, continue"  — enabled only once the box is ticked. Stamps
- *                          consent_given = true on every row and continues.
- *   "I do not agree"     — always enabled. Shows a short thank-you screen
+ * Layout: the consent text, ONE checkbox, and two buttons, one above the
+ * other and centred:
+ *   "I agree, continue"  — the main button, first. Enabled only once the
+ *                          box is ticked. Stamps consent_given = true on
+ *                          every row and continues.
+ *   "I do not agree"     — BELOW it, smaller and plainer, with space between
+ *                          the two so that one cannot be clicked instead of
+ *                          the other (.consent-decline in
+ *                          css/experiment.css). Usable from the keyboard
+ *                          (Tab, then Enter or Space) like any button; no
+ *                          key press outside the button triggers it.
+ *                          Always enabled. Shows a short thank-you screen
  *                          and ends the session there. NOTHING is uploaded:
  *                          the session never reaches the save step, and the
  *                          contact screen (the only other upload) comes
@@ -60,11 +68,11 @@ var ConsentPhase = (function () {
           '<span>' + C.checkbox + '</span>' +
           '</label>' +
           '<div class="btn-row consent-buttons">' +
-          '<button id="consent-decline" class="calib-btn btn-secondary" type="button">' +
-          C.button_decline + '</button>' +
           '<button id="consent-agree" class="calib-btn" type="button" disabled ' +
           'style="opacity:0.35; cursor:not-allowed;">' +
           C.button_agree + '</button>' +
+          '<button id="consent-decline" class="calib-btn btn-secondary consent-decline" ' +
+          'type="button">' + C.button_decline + '</button>' +
           '</div>' +
           '</div>';
 
