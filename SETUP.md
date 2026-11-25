@@ -524,6 +524,11 @@ address as `--base-url` (§7).
 - `NODE_PATH=~/.cache/dpdr-test/node_modules node tools/test_dev_short_e2e.js`:
   the short test link and the "Please return to full screen" overlay, the
   same way.
+- `NODE_PATH=~/.cache/dpdr-test/node_modules node tools/test_layout_e2e.js`:
+  the layout of the consent buttons ("I agree, continue" first, "I do not
+  agree" smaller below it) and of long episode names (wrapping inside the
+  card), in both languages and both groups, at 1056 x 666, 1280 x 720 and
+  1440 x 900.
 
 #### Editing the table in Excel or Numbers
 

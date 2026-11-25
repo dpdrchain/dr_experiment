@@ -648,9 +648,15 @@ body.allow-scaling .stim-panel {
 
 /* The consent text scrolls INSIDE the card, so the checkbox and both
    buttons are always on screen: a card taller than the window would be cut
-   off at the top by the centred layout, with no way to scroll to it. */
+   off at the top by the centred layout, with no way to scroll to it.
+   Its height: 52vh, but in a short window at most the window height less
+   what the rest of the card needs (title, checkbox, the two buttons one
+   above the other: about 330px), so the whole card stays inside the
+   window. From about 710px high up this is 52vh, as before. The first
+   line is for browsers without min(). */
 .consent-text {
   max-height: 52vh;
+  max-height: min(52vh, calc(100vh - 340px));
   overflow-y: auto;
   padding-right: .6rem;
   border-bottom: 1px solid #ddd;
@@ -692,10 +698,20 @@ body.allow-scaling .stim-panel {
   }
 }
 
+/* "I agree, continue" on its own, as every other main button; "I do not
+   agree" centred BELOW it, smaller and plainer, with enough space between
+   the two that one cannot be clicked instead of the other. The agree
+   button comes first in the page, so Tab after ticking the box reaches it
+   first. */
 .consent-buttons {
   display: flex;
-  justify-content: center;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: center;
+}
+.consent-buttons .consent-decline {
+  margin-top: 1.75rem;
+  padding: .3rem 1rem;
+  font-size: .85rem;
 }
 
 .btn-secondary {
@@ -826,6 +842,10 @@ body.allow-scaling .stim-panel {
 
 /* --- Reinstatement and rest ------------------------------------------- */
 .reinstate-card { max-width: 720px; }
+/* The episode name standing on its own line (the reinstatement screens,
+   {WORDS} in its own <p>): a block with a blue line. overflow-wrap breaks
+   a long word with no spaces (e.g. a pasted address) at the card's edge;
+   ordinary names look the same with it. */
 .reinstate-card .ep-words,
 .episode-card .ep-words {
   display: inline-block;
@@ -834,6 +854,20 @@ body.allow-scaling .stim-panel {
   border-left: 3px solid #4a6fa5;
   background: #f3f6fb;
   font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* The episode name INSIDE a sentence, in parentheses (the ordinary-episode
+   screen's {DR_WORDS}, the word-rating introduction's {WORDS}): bold only,
+   so it wraps with the text like normal words. Not scoped to a card, so it
+   looks the same on every screen. */
+.ep-words-inline {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 .question-now {
   font-weight: 600;

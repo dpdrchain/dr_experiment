@@ -275,7 +275,7 @@ var TEXT_EN = {
           body:
             '<p>Please now bring to mind a different episode, in a ' +
             '<b>similar setting</b> to the episode you described in the ' +
-            'interview (<span class="ep-words">{DR_WORDS}</span>), that is, ' +
+            'interview (<span class="ep-words-inline">{DR_WORDS}</span>), that is, ' +
             'a similar place, time of day and lighting. It should be from ' +
             '<b>about as long ago</b>, and your surroundings should have ' +
             'looked <b>as usual</b>.</p>' +

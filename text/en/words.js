@@ -42,7 +42,7 @@ var WORDS_EN = {
     participant:
       '<p>On the next screen you will see a list of words.</p>' +
       '<p>Please think again of <b>the episode you described in the ' +
-      'interview</b> (<span class="ep-words">{WORDS}</span>).</p>' +
+      'interview</b> (<span class="ep-words-inline">{WORDS}</span>).</p>' +
       '<p><b>During that episode, how well does each word describe how your ' +
       'surroundings looked?</b></p>' +
       '<p>Please rate every word from 0 (not at all) to 6 (exactly). Some ' +
