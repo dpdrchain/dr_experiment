@@ -273,6 +273,7 @@ tools/test_link_code.js         the browser's code lookup against the test vecto
 tools/test_link_codes_e2e.js    browser test of the code links (header says how to run it)
 tools/test_dev_short_e2e.js     browser test of the short test link and the full-screen overlay
 tools/test_layout_e2e.js        browser check of the consent buttons and of long episode names
+tools/test_fixation_line_e2e.js  browser check of the fixation-cross sentence and the practice introductions' fit
 data/links/codes.json   the PUBLIC link-code file (one encrypted entry per code; no
                         codes, nothing about people). Added by the researcher after
                         running make_link_codes.py; index.html needs it

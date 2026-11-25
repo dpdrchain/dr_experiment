@@ -49,6 +49,13 @@ html, body {
 
 .card .hint { font-size: .9rem; color: #555; text-align: justify; }
 
+/* The two practice introductions (before each block's practice): the
+   episode screens' paragraph spacing, so block 1's, the longest text
+   screen of a block, fits the smallest accepted window (1056 x 666)
+   without scrolling. Font size unchanged. */
+.practice-intro-card { line-height: 1.5; }
+.practice-intro-card p { margin: .5rem 0; line-height: 1.5; }
+
 /* Alignment rule (src/text-align.js): text that fits on one line is
    centred, text that wraps is justified. Titles, buttons and the question
    above the images are always centred. */

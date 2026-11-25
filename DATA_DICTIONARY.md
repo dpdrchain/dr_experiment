@@ -172,7 +172,7 @@ Within a block, in order:
 | `preload` | 0–1 | waits for any of the block's images that the background download has not fetched yet (`success`, `failed_images`) |
 | `block_start` | 1 | stamps `block<p>_start` |
 | `reinstate` | 1 | names the block's episode and shows the participant's own words (§6) |
-| `practice_intro` | 1 | the task, keyed by the block's episode (block 1, with the arrow keys); before block 2, that the second part works the same way, that the question has changed, the new question and the task |
+| `practice_intro` | 1 | the task, keyed by the block's episode (block 1, with the arrow keys and the sentence asking participants to look at the fixation cross); before block 2, that the second part works the same way, that the question has changed, the new question and the task |
 | `pairs` + `fixation` + `practice_feedback` + `blank` | 3 × 4 | the 3 practice trials, each followed by its feedback screen. **First practice trial:** arrows under the images while choosing; then only the chosen image stays, with a message confirming the participant's choice, for 3 s (`feedback_display = 'chosen_only'`). **Second and third:** the chosen image outlined for 0.9 s (`feedback_display = 'outline'`) |
 | `practice_end` | 1 | breaks and attention-check screens explained; no trial count or duration |
 | `pairs`, `fixation`, `blank`, `catch_lockout` | 200 + 195 + 195 + 5 | the 200 main trials, in the list's order. Catch trials have no fixation or blank: a `catch_lockout` row (750 ms, keys disabled), then the `pairs` row with the response |

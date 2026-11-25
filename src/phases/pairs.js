@@ -8,8 +8,9 @@
  *   block start   -> block<p>_start is stamped
  *   reinstatement -> names the block's episode (phases/episodes.js)
  *   practice intro, keyed by the block's episode (block 1: what the
- *     pictures are, the task, the arrow keys; block 2: the second part
- *     works the same way, the question has changed, the task again)
+ *     pictures are, the task, the arrow keys, the fixation cross; block 2:
+ *     the second part works the same way, the question has changed, the
+ *     task again)
  *   the practice trials (design.json: 3), each followed by feedback when
  *     the block has it (design.json: practice_feedback_by_block_position,
  *     practice_feedback_trials)
@@ -455,12 +456,14 @@ var PairsPhase = (function () {
   }
 
   // -----------------------------------------------------------------------
-  // A text screen advanced with SPACE.
+  // A text screen advanced with SPACE. `cardClass` (optional) is added to
+  // the card's class, e.g. 'practice-intro-card'.
   // -----------------------------------------------------------------------
-  function _screen(title, body, hint, blockName, position) {
+  function _screen(title, body, hint, blockName, position, cardClass) {
     return {
       type: jsPsychHtmlKeyboardResponse,
-      stimulus: '<div class="card"><h2>' + title + '</h2>' + body +
+      stimulus: '<div class="card' + (cardClass ? ' ' + cardClass : '') + '"><h2>' +
+                title + '</h2>' + body +
                 '<p class="hint">' + hint + '</p></div>',
       choices: [' '],
       data: { block: blockName, block_position: position },
@@ -565,13 +568,16 @@ var PairsPhase = (function () {
       var P = T.practice;
       var vars = { N: practice.length, QUESTION: prompt(b.episode) };
       var intro = (b.position === 1)
-        ? Loader.byEpisode(P.body, b.episode) + P.keys_line +
+        ? Loader.byEpisode(P.body, b.episode) + P.keys_line + P.fixation_line +
           _fill(P.count_line, vars) + T.session.reload_warning
         : P.intro_b2 + _fill(P.question_changed, vars) +
           Loader.byEpisode(P.body_b2, b.episode) + _fill(P.count_line, vars);
       var pstart = nodes.length;
+      // Both practice introductions use the episode screens' tighter
+      // paragraph spacing (.practice-intro-card), so block 1's, the longest,
+      // fits a 1056 x 666 window without scrolling.
       nodes.push(_screen(P.title, intro, P.continue_hint,
-                         'practice_intro', b.position));
+                         'practice_intro', b.position, 'practice-intro-card'));
       var pctx = Object.assign({ phase: 'practice' }, ctx);
       practice.forEach(function (row, i) {
         // Arrows under the images on the first practice trial. Feedback on
